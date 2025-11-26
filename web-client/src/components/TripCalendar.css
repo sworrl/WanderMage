@@ -1,0 +1,259 @@
+.trip-calendar {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.trip-calendar-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.calendar-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 15px;
+  font-size: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+}
+
+.legend-color.trip-day {
+  background: var(--accent-primary);
+  opacity: 0.3;
+}
+
+.legend-color.stop-day {
+  background: var(--accent-success);
+  opacity: 0.5;
+}
+
+.legend-color.tentative {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--accent-warning),
+    var(--accent-warning) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.calendar-grid {
+  width: 100%;
+}
+
+.weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 5px;
+}
+
+.weekday-name {
+  text-align: center;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 8px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.calendar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-day {
+  position: relative;
+  min-height: 90px;
+  padding: 6px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.calendar-day:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+}
+
+.calendar-day.other-month {
+  opacity: 0.4;
+}
+
+.calendar-day.in-trip {
+  background: var(--accent-primary);
+  background-opacity: 0.1;
+  border-color: var(--accent-primary);
+}
+
+.calendar-day.trip-start {
+  background: var(--accent-primary);
+  background-opacity: 0.2;
+  border: 2px solid var(--accent-primary);
+  border-left-width: 4px;
+}
+
+.calendar-day.trip-end {
+  background: var(--accent-primary);
+  background-opacity: 0.2;
+  border: 2px solid var(--accent-primary);
+  border-right-width: 4px;
+}
+
+.calendar-day.has-stops {
+  background: var(--accent-success);
+  background-opacity: 0.15;
+  border-color: var(--accent-success);
+}
+
+.calendar-day.tentative {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    var(--accent-warning) 10px,
+    var(--accent-warning) 12px
+  );
+}
+
+.day-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.day-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.start-badge {
+  background: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.end-badge {
+  background: var(--accent-danger);
+  color: var(--text-primary);
+}
+
+.day-stops {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.stop-marker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 3px 5px;
+  background: var(--accent-success);
+  color: var(--text-primary);
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stop-marker.tentative-stop {
+  background: var(--accent-warning);
+  border: 1px dashed var(--text-secondary);
+}
+
+.stop-icon {
+  font-size: 12px;
+}
+
+.stop-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overnight-icon {
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .calendar-day {
+    min-height: 70px;
+    padding: 4px;
+  }
+
+  .day-number {
+    font-size: 12px;
+  }
+
+  .day-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .stop-marker {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+
+  .weekday-name {
+    font-size: 10px;
+    padding: 6px;
+  }
+
+  .calendar-legend {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

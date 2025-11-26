@@ -1,0 +1,110 @@
+.quick-settings {
+  padding: 1rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.quick-setting-item {
+  position: relative;
+}
+
+.quick-setting-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.quick-setting-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.setting-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.quick-setting-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 998;
+}
+
+.theme-quick-menu {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 4px 12px var(--shadow-lg);
+  z-index: 999;
+  min-width: 180px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.theme-quick-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.theme-quick-option:hover {
+  background: var(--bg-tertiary);
+}
+
+.theme-quick-option.active {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.theme-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.theme-label {
+  flex: 1;
+  text-align: left;
+}
+
+.check-mark {
+  font-size: 0.875rem;
+  font-weight: bold;
+}
