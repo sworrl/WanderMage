@@ -9,7 +9,8 @@ from .api import (
     auth, users, rv_profiles, trips, pois, fuel_logs, metrics, state_visits,
     settings as settings_api, crawl_status, user_preferences, overpass_heights,
     railroad_crossings, achievements, fuel_prices, import_stops, overpass_search,
-    pois_bbox, roles, scraping_control, weather, harvest_hosts
+    pois_bbox, roles, scraping_control, weather, harvest_hosts, api_keys,
+    scraper_dashboard, serialization
 )
 from .services.scheduler import start_scheduler, stop_scheduler
 
@@ -68,6 +69,15 @@ app.include_router(pois_bbox.router, prefix="/api/pois-bbox", tags=["POIs BBox"]
 app.include_router(scraping_control.router, prefix="/api/scraping-control", tags=["Scraping Control"])
 app.include_router(achievements.router, prefix="/api/achievements", tags=["Achievements"])
 app.include_router(harvest_hosts.router, prefix="/api/harvest-hosts", tags=["Harvest Hosts"])
+app.include_router(api_keys.router, prefix="/api/api-keys", tags=["API Keys"])
+app.include_router(scraper_dashboard.router, prefix="/api/scraper-dashboard", tags=["Scraper Dashboard"])
+app.include_router(serialization.router, prefix="/api/serialization", tags=["Serialization"])
+
+
+# Health check endpoint (no auth required)
+@app.get("/api/health")
+async def health_check():
+    return {"status": "healthy", "service": "wandermage-api"}
 
 
 @app.get("/")

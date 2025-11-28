@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { scraperDashboard, settings } from '../services/api'
 import './ScraperDashboard.css'
 
+interface ScraperConfig {
+  categories?: string[]
+  states?: string[]
+}
+
 interface ScraperStatus {
   id: number
   scraper_type: string
@@ -19,6 +24,7 @@ interface ScraperStatus {
   items_processed: number
   items_found: number
   items_saved: number
+  items_updated: number
   current_segment: number
   total_segments: number
   segment_name: string | null
@@ -36,6 +42,7 @@ interface ScraperStatus {
   total_items_collected: number
   last_successful_run: string | null
   is_stale: boolean
+  config: ScraperConfig | null
 }
 
 interface DashboardSummary {
@@ -80,6 +87,9 @@ export default function ScraperDashboard() {
   const [hhScrapeStays, setHHScrapeStays] = useState(true)
   const [hhCredentialsConfigured, setHHCredentialsConfigured] = useState(false)
 
+  // EIA API key state
+  const [eiaKeyConfigured, setEiaKeyConfigured] = useState(true)  // Default to true to avoid flash
+
   const loadData = useCallback(async () => {
     try {
       const response = await scraperDashboard.getAllStatus()
@@ -112,16 +122,26 @@ export default function ScraperDashboard() {
     }
   }, [])
 
+  const checkEiaKeyStatus = useCallback(async () => {
+    try {
+      const response = await settings.getEiaApiKeyStatus()
+      setEiaKeyConfigured(response.data.configured)
+    } catch (err: any) {
+      console.error('Failed to check EIA key status:', err)
+    }
+  }, [])
+
   useEffect(() => {
     loadData()
     loadPOIOptions()
     checkHHCredentials()
+    checkEiaKeyStatus()
 
     // Poll for updates every 3 seconds
     const interval = setInterval(loadData, 3000)
 
     return () => clearInterval(interval)
-  }, [loadData, loadPOIOptions, checkHHCredentials])
+  }, [loadData, loadPOIOptions, checkHHCredentials, checkEiaKeyStatus])
 
   const handleStartPOI = async () => {
     setActionInProgress('poi_crawler')
@@ -542,9 +562,10 @@ export default function ScraperDashboard() {
         </div>
       )}
 
-      {/* Scraper Cards */}
+      {/* Scraper Cards - Group HH scrapers together */}
       <div className="scraper-grid">
-        {scrapers.map((scraper) => (
+        {/* Regular scrapers (non-HH) */}
+        {scrapers.filter(s => !s.scraper_type.startsWith('hh_')).map((scraper) => (
           <div
             key={scraper.scraper_type}
             className={`scraper-card ${scraper.status} ${scraper.is_stale ? 'stale' : ''}`}
@@ -642,6 +663,32 @@ export default function ScraperDashboard() {
               </div>
             )}
 
+            {/* Scan Configuration (when running POI crawler) */}
+            {scraper.status === 'running' && scraper.scraper_type === 'poi_crawler' && scraper.config && (
+              <div className="scan-config">
+                <div className="config-item">
+                  <span className="config-label">Categories:</span>
+                  <span className="config-value">
+                    {scraper.config.categories && scraper.config.categories.length > 0
+                      ? scraper.config.categories.length <= 5
+                        ? scraper.config.categories.join(', ')
+                        : `${scraper.config.categories.length} selected`
+                      : 'All'}
+                  </span>
+                </div>
+                <div className="config-item">
+                  <span className="config-label">States:</span>
+                  <span className="config-value">
+                    {scraper.config.states && scraper.config.states.length > 0
+                      ? scraper.config.states.length <= 8
+                        ? scraper.config.states.join(', ')
+                        : `${scraper.config.states.length} states`
+                      : 'All'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Stats Grid */}
             <div className="scraper-stats">
               <div className="stat-item">
@@ -649,8 +696,12 @@ export default function ScraperDashboard() {
                 <span className="stat-value">{scraper.items_found.toLocaleString()}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Saved</span>
+                <span className="stat-label">New</span>
                 <span className="stat-value">{scraper.items_saved.toLocaleString()}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Updated</span>
+                <span className="stat-value">{(scraper.items_updated || 0).toLocaleString()}</span>
               </div>
               {scraper.status === 'running' && scraper.avg_items_per_minute > 0 && (
                 <div className="stat-item">
@@ -731,9 +782,155 @@ export default function ScraperDashboard() {
             {/* Description */}
             <div className="scraper-description">
               {scraper.description}
+              {/* EIA API signup link for fuel prices scraper - only show if not configured */}
+              {scraper.scraper_type === 'fuel_prices' && !eiaKeyConfigured && (
+                <div className="api-signup-link">
+                  <a
+                    href="https://www.eia.gov/opendata/register.php"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Get free EIA API key →
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         ))}
+
+        {/* Harvest Hosts Group */}
+        {scrapers.some(s => s.scraper_type.startsWith('hh_')) && (
+          <div className="scraper-group harvest-hosts-group">
+            <div className="group-header">
+              <span className="group-icon">🏡</span>
+              <h3>Harvest Hosts</h3>
+              <span className="group-badge">Membership Required</span>
+            </div>
+            <div className="group-scrapers">
+              {scrapers.filter(s => s.scraper_type.startsWith('hh_')).map((scraper) => (
+                <div
+                  key={scraper.scraper_type}
+                  className={`scraper-card mini ${scraper.status} ${scraper.is_stale ? 'stale' : ''} ${scraper.scraper_type === 'hh_hosts_database' ? 'out-of-order' : ''}`}
+                >
+                  {/* Out of Order Sticker for HH Hosts */}
+                  {scraper.scraper_type === 'hh_hosts_database' && (
+                    <div className="out-of-order-overlay">
+                      <div className="out-of-order-sticker">
+                        <span className="sticker-tape top"></span>
+                        <div className="sticker-content">
+                          <span className="sticker-icon">🔧</span>
+                          <span className="sticker-text">OUT OF ORDER</span>
+                          <span className="sticker-subtext">Gremlins in the code!</span>
+                        </div>
+                        <span className="sticker-tape bottom"></span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Card Header */}
+                  <div className="scraper-header">
+                    <div className="scraper-title">
+                      <span className="scraper-icon">{scraper.icon}</span>
+                      <div>
+                        <h3>{scraper.display_name}</h3>
+                        <span
+                          className="status-badge"
+                          style={{ backgroundColor: scraper.scraper_type === 'hh_hosts_database' ? '#6b7280' : getStatusColor(scraper.status) }}
+                        >
+                          {scraper.scraper_type === 'hh_hosts_database' ? 'COMING SOON' : scraper.status.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                    <div
+                      className="health-indicator"
+                      style={{ backgroundColor: getHealthColor(scraper.health_status) }}
+                      title={`Health: ${scraper.health_status}`}
+                    />
+                  </div>
+
+                  {/* Intelligent Status */}
+                  <div className="intelligent-status">
+                    {scraper.status === 'running' && scraper.scraper_type !== 'hh_hosts_database' && (
+                      <span className="live-pulse" />
+                    )}
+                    {scraper.scraper_type === 'hh_hosts_database'
+                      ? 'Under construction - check back soon!'
+                      : scraper.intelligent_status}
+                  </div>
+
+                  {/* Activity Details (only for working scrapers) */}
+                  {scraper.status === 'running' && scraper.scraper_type !== 'hh_hosts_database' && (
+                    <div className="activity-details">
+                      {scraper.current_activity && (
+                        <div className="activity-line">
+                          <span className="activity-label">Activity:</span>
+                          <span className="activity-value">{scraper.current_activity}</span>
+                        </div>
+                      )}
+                      {scraper.last_item_name && (
+                        <div className="activity-line last-item">
+                          <span className="activity-label">Last:</span>
+                          <span className="activity-value">{scraper.last_item_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Stats Grid */}
+                  <div className="scraper-stats compact">
+                    <div className="stat-item">
+                      <span className="stat-label">Found</span>
+                      <span className="stat-value">{scraper.items_found.toLocaleString()}</span>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-label">Saved</span>
+                      <span className="stat-value">{scraper.items_saved.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="scraper-actions">
+                    {scraper.scraper_type === 'hh_hosts_database' ? (
+                      <button className="btn btn-disabled" disabled title="Coming soon!">
+                        Not Ready Yet
+                      </button>
+                    ) : scraper.status === 'running' ? (
+                      <button
+                        onClick={() => handleStop(scraper.scraper_type)}
+                        disabled={actionInProgress === scraper.scraper_type}
+                        className="btn btn-stop"
+                      >
+                        {actionInProgress === scraper.scraper_type ? 'Stopping...' : 'Stop'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleStart(scraper.scraper_type)}
+                        disabled={actionInProgress === scraper.scraper_type || !scraper.is_enabled}
+                        className="btn btn-start"
+                      >
+                        {actionInProgress === scraper.scraper_type ? 'Starting...' : 'Start'}
+                      </button>
+                    )}
+                    {(scraper.status === 'failed' || scraper.is_stale) && scraper.scraper_type !== 'hh_hosts_database' && (
+                      <button
+                        onClick={() => handleReset(scraper.scraper_type)}
+                        disabled={actionInProgress === scraper.scraper_type}
+                        className="btn btn-reset"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div className="scraper-description">
+                    {scraper.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -23,5 +23,4 @@ class User(Base):
     fuel_logs = relationship("FuelLog", back_populates="user", cascade="all, delete-orphan")
     state_visits = relationship("StateVisit", back_populates="user", cascade="all, delete-orphan")
     rv_profiles = relationship("RVProfile", back_populates="user", cascade="all, delete-orphan")
-    achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
     harvest_host_stays = relationship("HarvestHostStay", back_populates="user", cascade="all, delete-orphan")

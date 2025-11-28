@@ -27,6 +27,7 @@ from geoalchemy2.elements import WKTElement
 from ..core.database import SessionLocal
 from ..models.poi import POI as POIModel
 from ..models.crawl_status import CrawlStatus as CrawlStatusModel
+from ..models.scraper_status import ScraperStatus
 
 logger = logging.getLogger(__name__)
 
@@ -84,46 +85,282 @@ US_STATES = {
     'WY': {'name': 'Wyoming', 'lat_range': (41.0, 45.0), 'lon_range': (-111.1, -104.1), 'priority': 3},
 }
 
-# POI categories with enhanced queries to capture more data
+# POI categories with granular queries - each category is specific and non-overlapping
 POI_CATEGORIES = {
     "truck_stops": {
         "name": "Truck Stops",
         "query": '''
             (
                 node["amenity"="fuel"]["hgv"="yes"]({{bbox}});
-                node["name"~"Pilot|Flying J|TA|Petro|Love|Ambest"]({{bbox}});
+                way["amenity"="fuel"]["hgv"="yes"]({{bbox}});
+                node["amenity"="fuel"]["name"~"Pilot|Flying J|TA Travel|Petro|Love's|Ambest|Sapp Bros|Buc-ee",i]({{bbox}});
+                way["amenity"="fuel"]["name"~"Pilot|Flying J|TA Travel|Petro|Love's|Ambest|Sapp Bros|Buc-ee",i]({{bbox}});
             );
         '''
     },
     "dump_stations": {
         "name": "RV Dump Stations",
-        "query": 'node["amenity"="sanitary_dump_station"]({{bbox}});'
+        "query": '''
+            (
+                node["amenity"="sanitary_dump_station"]({{bbox}});
+                way["amenity"="sanitary_dump_station"]({{bbox}});
+            );
+        '''
     },
     "rest_areas": {
         "name": "Rest Areas",
-        "query": '(node["highway"="rest_area"]({{bbox}});way["highway"="rest_area"]({{bbox}}););'
+        "query": '''
+            (
+                node["highway"="rest_area"]({{bbox}});
+                way["highway"="rest_area"]({{bbox}});
+                node["highway"="services"]({{bbox}});
+                way["highway"="services"]({{bbox}});
+            );
+        '''
+    },
+    "rv_parks": {
+        "name": "RV Parks",
+        "query": '''
+            (
+                node["tourism"="caravan_site"]({{bbox}});
+                way["tourism"="caravan_site"]({{bbox}});
+                node["leisure"="park"]["name"~"RV Park|RV Resort|Trailer Park",i]({{bbox}});
+                way["leisure"="park"]["name"~"RV Park|RV Resort|Trailer Park",i]({{bbox}});
+            );
+        '''
     },
     "campgrounds": {
         "name": "Campgrounds",
-        "query": '(node["tourism"="camp_site"]({{bbox}});node["tourism"="caravan_site"]({{bbox}}););'
+        "query": '''
+            (
+                node["tourism"="camp_site"]({{bbox}});
+                way["tourism"="camp_site"]({{bbox}});
+            );
+        '''
     },
     "national_parks": {
         "name": "National Parks",
         "query": '''
             (
-                node["leisure"="nature_reserve"]["protect_class"="2"]({{bbox}});
-                way["leisure"="nature_reserve"]["protect_class"="2"]({{bbox}});
-                relation["leisure"="nature_reserve"]["protect_class"="2"]({{bbox}});
+                node["boundary"="national_park"]({{bbox}});
+                way["boundary"="national_park"]({{bbox}});
+                relation["boundary"="national_park"]({{bbox}});
+                node["boundary"="protected_area"]["protect_class"="2"]({{bbox}});
+                way["boundary"="protected_area"]["protect_class"="2"]({{bbox}});
+                relation["boundary"="protected_area"]["protect_class"="2"]({{bbox}});
+                node["leisure"="nature_reserve"]["operator"~"National Park Service",i]({{bbox}});
+                way["leisure"="nature_reserve"]["operator"~"National Park Service",i]({{bbox}});
+                relation["leisure"="nature_reserve"]["operator"~"National Park Service",i]({{bbox}});
             );
         '''
     },
     "state_parks": {
         "name": "State Parks",
-        "query": '(node["leisure"="park"]["operator"~"State"]({{bbox}});way["leisure"="park"]["operator"~"State"]({{bbox}}););'
+        "query": '''
+            (
+                node["leisure"="park"]["name"~"State Park$",i]({{bbox}});
+                way["leisure"="park"]["name"~"State Park$",i]({{bbox}});
+                relation["leisure"="park"]["name"~"State Park$",i]({{bbox}});
+                node["boundary"="protected_area"]["protection_title"~"State Park",i]({{bbox}});
+                way["boundary"="protected_area"]["protection_title"~"State Park",i]({{bbox}});
+                relation["boundary"="protected_area"]["protection_title"~"State Park",i]({{bbox}});
+                node["ownership"="state"]["leisure"="park"]({{bbox}});
+                way["ownership"="state"]["leisure"="park"]({{bbox}});
+                relation["ownership"="state"]["leisure"="park"]({{bbox}});
+            );
+        '''
+    },
+    "state_forests": {
+        "name": "State Forests",
+        "query": '''
+            (
+                node["landuse"="forest"]["ownership"="state"]({{bbox}});
+                way["landuse"="forest"]["ownership"="state"]({{bbox}});
+                relation["landuse"="forest"]["ownership"="state"]({{bbox}});
+                node["boundary"="protected_area"]["name"~"State Forest$",i]({{bbox}});
+                way["boundary"="protected_area"]["name"~"State Forest$",i]({{bbox}});
+                relation["boundary"="protected_area"]["name"~"State Forest$",i]({{bbox}});
+            );
+        '''
+    },
+    "national_forests": {
+        "name": "National Forests",
+        "query": '''
+            (
+                node["boundary"="protected_area"]["operator"~"Forest Service|USFS",i]({{bbox}});
+                way["boundary"="protected_area"]["operator"~"Forest Service|USFS",i]({{bbox}});
+                relation["boundary"="protected_area"]["operator"~"Forest Service|USFS",i]({{bbox}});
+                node["boundary"="protected_area"]["name"~"National Forest$",i]({{bbox}});
+                way["boundary"="protected_area"]["name"~"National Forest$",i]({{bbox}});
+                relation["boundary"="protected_area"]["name"~"National Forest$",i]({{bbox}});
+            );
+        '''
+    },
+    "county_parks": {
+        "name": "County Parks",
+        "query": '''
+            (
+                node["leisure"="park"]["name"~"County Park$",i]({{bbox}});
+                way["leisure"="park"]["name"~"County Park$",i]({{bbox}});
+                relation["leisure"="park"]["name"~"County Park$",i]({{bbox}});
+                node["leisure"="park"]["ownership"="county"]({{bbox}});
+                way["leisure"="park"]["ownership"="county"]({{bbox}});
+                relation["leisure"="park"]["ownership"="county"]({{bbox}});
+            );
+        '''
     },
     "gas_stations": {
         "name": "Gas Stations",
-        "query": 'node["amenity"="fuel"]({{bbox}});'
+        "query": '''
+            (
+                node["amenity"="fuel"]["hgv"!="yes"]({{bbox}});
+                way["amenity"="fuel"]["hgv"!="yes"]({{bbox}});
+            );
+        '''
+    },
+    "propane": {
+        "name": "Propane Refill",
+        "query": '''
+            (
+                node["shop"="gas"]["fuel:lpg"="yes"]({{bbox}});
+                node["amenity"="fuel"]["fuel:lpg"="yes"]({{bbox}});
+                node["shop"="gas"]({{bbox}});
+            );
+        '''
+    },
+    "water_fill": {
+        "name": "Potable Water Fill",
+        "query": '''
+            (
+                node["amenity"="drinking_water"]["access"!="private"]({{bbox}});
+                node["amenity"="water_point"]({{bbox}});
+            );
+        '''
+    },
+    "weigh_stations": {
+        "name": "Weigh Stations",
+        "query": '''
+            (
+                node["amenity"="weighbridge"]({{bbox}});
+                way["amenity"="weighbridge"]({{bbox}});
+                node["highway"="weigh_station"]({{bbox}});
+            );
+        '''
+    },
+    "walmart": {
+        "name": "Walmart",
+        "query": '''
+            (
+                node["shop"="supermarket"]["brand"="Walmart"]({{bbox}});
+                way["shop"="supermarket"]["brand"="Walmart"]({{bbox}});
+                node["shop"]["name"~"Walmart",i]({{bbox}});
+                way["shop"]["name"~"Walmart",i]({{bbox}});
+                node["amenity"="parking"]["name"~"Walmart",i]({{bbox}});
+                way["amenity"="parking"]["name"~"Walmart",i]({{bbox}});
+            );
+        '''
+    },
+    "casinos": {
+        "name": "Casinos",
+        "query": '''
+            (
+                node["amenity"="casino"]({{bbox}});
+                way["amenity"="casino"]({{bbox}});
+                node["leisure"="adult_gaming_centre"]({{bbox}});
+            );
+        '''
+    },
+    "laundromat": {
+        "name": "Laundromats",
+        "query": '''
+            (
+                node["shop"="laundry"]({{bbox}});
+                way["shop"="laundry"]({{bbox}});
+            );
+        '''
+    },
+    "vet": {
+        "name": "Veterinarians",
+        "query": '''
+            (
+                node["amenity"="veterinary"]({{bbox}});
+                way["amenity"="veterinary"]({{bbox}});
+            );
+        '''
+    },
+    "grocery": {
+        "name": "Grocery Stores",
+        "query": '''
+            (
+                node["shop"="supermarket"]({{bbox}});
+                way["shop"="supermarket"]({{bbox}});
+            );
+        '''
+    },
+    "pharmacy": {
+        "name": "Pharmacies",
+        "query": '''
+            (
+                node["amenity"="pharmacy"]({{bbox}});
+                way["amenity"="pharmacy"]({{bbox}});
+            );
+        '''
+    },
+    "hospital": {
+        "name": "Hospitals",
+        "query": '''
+            (
+                node["amenity"="hospital"]({{bbox}});
+                way["amenity"="hospital"]({{bbox}});
+            );
+        '''
+    },
+    "tire_shop": {
+        "name": "Tire Shops",
+        "query": '''
+            (
+                node["shop"="tyres"]({{bbox}});
+                way["shop"="tyres"]({{bbox}});
+            );
+        '''
+    },
+    "auto_repair": {
+        "name": "Auto Repair",
+        "query": '''
+            (
+                node["shop"="car_repair"]({{bbox}});
+                way["shop"="car_repair"]({{bbox}});
+            );
+        '''
+    },
+    "hardware_store": {
+        "name": "Hardware Stores",
+        "query": '''
+            (
+                node["shop"="hardware"]({{bbox}});
+                way["shop"="hardware"]({{bbox}});
+                node["shop"="doityourself"]({{bbox}});
+                way["shop"="doityourself"]({{bbox}});
+            );
+        '''
+    },
+    "rv_wash": {
+        "name": "Car/RV Wash",
+        "query": '''
+            (
+                node["amenity"="car_wash"]({{bbox}});
+                way["amenity"="car_wash"]({{bbox}});
+            );
+        '''
+    },
+    "rv_service": {
+        "name": "RV Service & Dealers",
+        "query": '''
+            (
+                node["shop"="caravan"]({{bbox}});
+                way["shop"="caravan"]({{bbox}});
+            );
+        '''
     },
 }
 
@@ -139,6 +376,12 @@ class POICrawlerService:
 
     def determine_poi_type(self, tags: dict) -> str:
         """Determine POI category from OSM tags"""
+        # Check for Walmart
+        name = tags.get("name", "").lower()
+        brand = tags.get("brand", "").lower()
+        if "walmart" in name or "walmart" in brand:
+            return "walmart"
+
         if tags.get("amenity") == "sanitary_dump_station":
             return "dump_stations"
         if tags.get("highway") == "rest_area":
@@ -151,6 +394,31 @@ class POICrawlerService:
             return "state_parks"
         if tags.get("hgv") == "yes" or any(name in tags.get("name", "") for name in ["Pilot", "Flying J", "TA", "Petro", "Love", "Ambest"]):
             return "truck_stops"
+
+        # New RV-relevant categories
+        if tags.get("shop") == "laundry":
+            return "laundromat"
+        if tags.get("amenity") == "veterinary":
+            return "vet"
+        if tags.get("shop") == "supermarket":
+            return "grocery"
+        if tags.get("amenity") == "pharmacy":
+            return "pharmacy"
+        if tags.get("amenity") == "hospital":
+            return "hospital"
+        if tags.get("shop") == "tyres":
+            return "tire_shop"
+        if tags.get("shop") == "car_repair":
+            return "auto_repair"
+        if tags.get("shop") in ["hardware", "doityourself"]:
+            return "hardware_store"
+        if tags.get("amenity") == "car_wash":
+            return "rv_wash"
+        if tags.get("shop") == "caravan":
+            return "rv_service"
+        if tags.get("amenity") == "casino":
+            return "casinos"
+
         if tags.get("amenity") == "fuel":
             return "gas_stations"
         return "gas_stations"
@@ -292,8 +560,8 @@ class POICrawlerService:
                 category = POI_CATEGORIES[cat]
                 queries.append(category["query"].replace("{{bbox}}", bbox))
 
-        # Request all available tags
-        query = f'[out:json][timeout:30];({" ".join(queries)});out body tags;>;out skel qt;'
+        # Request all available tags with center coordinates for ways
+        query = f'[out:json][timeout:30];({" ".join(queries)});out center;'
 
         try:
             async with httpx.AsyncClient(timeout=35.0) as client:
@@ -314,8 +582,19 @@ class POICrawlerService:
 
                 # Process results with comprehensive data extraction
                 pois = []
+                total_elements = len(data.get("elements", []))
+                logger.info(f"Overpass returned {total_elements} elements for cell ({lat:.2f}, {lon:.2f})")
+
                 for element in data.get("elements", []):
-                    if element.get("lat") and element.get("lon") and element.get("tags"):
+                    # Check if this element has coordinates
+                    has_coords = element.get("lat") and element.get("lon")
+                    if not has_coords and element.get("type") == "way" and element.get("center"):
+                        # For ways, use center coordinates
+                        element["lat"] = element["center"]["lat"]
+                        element["lon"] = element["center"]["lon"]
+                        has_coords = True
+
+                    if has_coords and element.get("tags"):
                         try:
                             poi_data = self.extract_comprehensive_data(element)
                             pois.append(poi_data)
@@ -392,6 +671,49 @@ class POICrawlerService:
                 if status.current_cell > 0 and status.total_cells > 0:
                     remaining_seconds = status.estimated_time_remaining_seconds
                     status.estimated_completion = datetime.now(timezone.utc) + timedelta(seconds=remaining_seconds)
+
+                # Also update scraper_status for dashboard display
+                scraper = db.query(ScraperStatus).filter(
+                    ScraperStatus.scraper_type == 'poi_crawler'
+                ).first()
+
+                if scraper:
+                    scraper.current_region = status.current_state
+                    scraper.current_segment = status.current_cell
+                    scraper.total_segments = status.total_cells
+                    scraper.items_found = status.pois_fetched
+                    scraper.items_saved = status.pois_saved
+                    scraper.errors_count = status.errors_count
+                    scraper.last_activity_at = datetime.now(timezone.utc)
+
+                    # Handle status changes
+                    if status.status == 'completed':
+                        scraper.status = 'idle'
+                        scraper.current_activity = 'Completed'
+                        scraper.current_detail = f'Collected {status.pois_saved} POIs'
+                        scraper.completed_at = datetime.now(timezone.utc)
+                        scraper.last_successful_run = datetime.now(timezone.utc)
+                        scraper.total_items_collected += status.pois_saved
+                    elif status.status == 'failed':
+                        scraper.status = 'failed'
+                        scraper.current_activity = 'Failed'
+                        scraper.current_detail = status.last_error or 'Unknown error'
+                        scraper.last_error = status.last_error
+                        scraper.last_error_at = datetime.now(timezone.utc)
+                        scraper.completed_at = datetime.now(timezone.utc)
+                    elif status.status == 'stopped':
+                        scraper.status = 'idle'
+                        scraper.current_activity = 'Stopped'
+                        scraper.current_detail = f'Stopped after {status.pois_saved} POIs'
+                        scraper.completed_at = datetime.now(timezone.utc)
+                    elif status.status == 'running':
+                        # Build activity message
+                        state_name = US_STATES.get(status.current_state, {}).get('name', status.current_state)
+                        scraper.current_activity = f"Crawling {state_name}"
+                        scraper.current_detail = f"Cell {status.current_cell}/{status.total_cells}"
+
+                        if status.estimated_completion:
+                            scraper.estimated_completion = status.estimated_completion
 
                 db.commit()
         except Exception as e:
@@ -481,39 +803,44 @@ class POICrawlerService:
             "rate_limits": rate_limits
         }
 
-    async def run_full_us_crawl(self):
-        """Run full US crawl in background"""
-        logger.info("Starting full US POI crawl")
+    async def run_custom_crawl(self, categories: list = None, states: list = None):
+        """Run custom crawl with specified categories and states"""
+        # Default to all if not specified
+        if not categories:
+            categories = list(POI_CATEGORIES.keys())
+        if not states:
+            states = list(US_STATES.keys())
+
+        logger.info(f"Starting custom POI crawl: {len(categories)} categories, {len(states)} states")
         self.is_running = True
 
         db = SessionLocal()
 
         try:
             # Create crawl status record
+            crawl_type = "custom" if (categories != list(POI_CATEGORIES.keys()) or states != list(US_STATES.keys())) else "full_us"
+            region_desc = ", ".join(states) if len(states) <= 3 else f"{len(states)} states"
+
             status = CrawlStatusModel(
-                crawl_type="full_us",
-                target_region="United States",
+                crawl_type=crawl_type,
+                target_region=region_desc,
                 status="running",
-                total_states=len(US_STATES),
-                categories=json.dumps(list(POI_CATEGORIES.keys()))
+                total_states=len(states),
+                categories=json.dumps(categories)
             )
             db.add(status)
             db.commit()
             db.refresh(status)
             self.current_status_id = status.id
 
-            categories = list(POI_CATEGORIES.keys())
-
-            # Sort states by priority (1 = highest)
-            sorted_states = sorted(US_STATES.items(), key=lambda x: x[1]['priority'])
-
             states_completed = 0
 
-            for state_code, state_info in sorted_states:
+            for state_code in states:
                 if not self.is_running:
                     logger.info("Crawl stopped by user")
                     break
 
+                state_info = US_STATES.get(state_code, {"name": state_code})
                 logger.info(f"Crawling {state_info['name']} ({state_code})...")
 
                 result = await self.crawl_state(state_code, categories, db)
@@ -532,10 +859,10 @@ class POICrawlerService:
                 end_time=datetime.now(timezone.utc)
             )
 
-            logger.info("Full US POI crawl completed!")
+            logger.info("POI crawl completed!")
 
         except Exception as e:
-            logger.error(f"Error in full US crawl: {str(e)}")
+            logger.error(f"Error in crawl: {str(e)}")
             self.update_status(db,
                 status="failed",
                 last_error=str(e),
@@ -544,6 +871,11 @@ class POICrawlerService:
         finally:
             db.close()
             self.is_running = False
+
+    async def run_full_us_crawl(self):
+        """Run full US crawl in background"""
+        logger.info("Starting full US POI crawl")
+        await self.run_custom_crawl()
 
     def stop(self):
         """Stop the crawler"""
@@ -563,24 +895,13 @@ def get_crawler() -> POICrawlerService:
     return _crawler_instance
 
 
-async def start_poi_crawler():
-    """Start the POI crawler service"""
+async def start_poi_crawler(categories: list = None, states: list = None):
+    """Start the POI crawler service with optional category and state filters"""
     crawler = get_crawler()
 
-    # Check if crawl is already complete
+    # Check for running crawl
     db = SessionLocal()
     try:
-        # Check for completed full_us crawl
-        completed_crawl = db.query(CrawlStatusModel).filter(
-            CrawlStatusModel.crawl_type == "full_us",
-            CrawlStatusModel.status == "completed"
-        ).first()
-
-        if completed_crawl:
-            logger.info("Full US crawl already completed. Skipping automatic crawl.")
-            return
-
-        # Check for running crawl
         running_crawl = db.query(CrawlStatusModel).filter(
             CrawlStatusModel.status == "running"
         ).first()
@@ -592,9 +913,9 @@ async def start_poi_crawler():
     finally:
         db.close()
 
-    # Start the crawl
-    logger.info("Starting automatic POI crawler service")
-    asyncio.create_task(crawler.run_full_us_crawl())
+    # Start the crawl - await directly instead of create_task to prevent premature loop closure
+    logger.info(f"Starting POI crawler: categories={categories or 'all'}, states={states or 'all'}")
+    await crawler.run_custom_crawl(categories, states)
 
 
 def stop_poi_crawler():

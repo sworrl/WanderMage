@@ -297,20 +297,59 @@ else
 fi
 
 # ============================================
-# Create SSL certificate
+# Create SSL certificate and ensure-ssl service
 # ============================================
 echo -e "${YELLOW}Step 10: Creating SSL certificate...${NC}"
 mkdir -p $APP_DIR/ssl
+
+# Create the SSL cert generation script (used by systemd on boot)
+cat > $APP_DIR/ssl/ensure-ssl.sh <<'SSLSCRIPT'
+#!/bin/bash
+# Ensures SSL certificates exist for WanderMage
+SSL_DIR="/opt/wandermage/ssl"
+DOMAIN="wandermage.localhost"
+
+if [ ! -f "$SSL_DIR/cert.pem" ] || [ ! -f "$SSL_DIR/key.pem" ]; then
+    echo "SSL certificates missing, generating..."
+    mkdir -p "$SSL_DIR"
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+      -keyout "$SSL_DIR/key.pem" \
+      -out "$SSL_DIR/cert.pem" \
+      -subj "/C=US/ST=State/L=City/O=WanderMage/CN=$DOMAIN" 2>/dev/null
+    echo "SSL certificates generated."
+else
+    echo "SSL certificates exist."
+fi
+SSLSCRIPT
+chmod +x $APP_DIR/ssl/ensure-ssl.sh
+
+# Create systemd service that runs before nginx to ensure SSL certs exist
+cat > /etc/systemd/system/wandermage-ssl.service <<EOF
+[Unit]
+Description=Ensure WanderMage SSL certificates exist
+Before=nginx.service
+Wants=nginx.service
+
+[Service]
+Type=oneshot
+ExecStart=$APP_DIR/ssl/ensure-ssl.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Generate initial SSL cert if needed
 if [ ! -f "$APP_DIR/ssl/cert.pem" ] || [ ! -f "$APP_DIR/ssl/key.pem" ]; then
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
       -keyout $APP_DIR/ssl/key.pem \
       -out $APP_DIR/ssl/cert.pem \
       -subj "/C=US/ST=State/L=City/O=WanderMage/CN=$DOMAIN"
-    chown $USER:$USER $APP_DIR/ssl/*
     echo "  Generated self-signed SSL certificate"
 else
     echo "  SSL certificate already exists"
 fi
+chown -R $USER:$USER $APP_DIR/ssl
 
 # ============================================
 # Create nginx configuration
@@ -386,15 +425,121 @@ if [ -d "/etc/nginx/sites-enabled" ]; then
 fi
 
 # ============================================
+# Copy and setup scraper services
+# ============================================
+echo -e "${YELLOW}Step 12: Setting up scraper services...${NC}"
+mkdir -p $APP_DIR/scrapers
+cp -r "$SRC_DIR/scrapers/"* $APP_DIR/scrapers/ 2>/dev/null || echo "  No scrapers directory in source"
+chown -R $USER:$USER $APP_DIR/scrapers
+chmod 755 $APP_DIR/scrapers/*.py 2>/dev/null || true
+
+# Create master controller service
+cat > /etc/systemd/system/wandermage-scraper-master.service <<EOF
+[Unit]
+Description=WanderMage Scraper Master Controller
+After=network.target wandermage.service postgresql.service
+Wants=wandermage.service
+
+[Service]
+Type=simple
+User=$USER
+Group=$USER
+WorkingDirectory=$APP_DIR/scrapers
+EnvironmentFile=$BACKEND_DIR/.env
+Environment="PATH=$BACKEND_DIR/venv/bin:/usr/bin:/bin"
+ExecStart=$BACKEND_DIR/venv/bin/python3 $APP_DIR/scrapers/master_controller.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Create POI scraper service
+cat > /etc/systemd/system/wandermage-scraper-poi.service <<EOF
+[Unit]
+Description=WanderMage POI Scraper
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=$USER
+Group=$USER
+WorkingDirectory=$APP_DIR/scrapers
+EnvironmentFile=$BACKEND_DIR/.env
+Environment="PATH=$BACKEND_DIR/venv/bin:/usr/bin:/bin"
+ExecStart=$BACKEND_DIR/venv/bin/python3 $APP_DIR/scrapers/poi_scraper.py
+TimeoutStartSec=3600
+RemainAfterExit=no
+EOF
+
+# Create fuel scraper service
+cat > /etc/systemd/system/wandermage-scraper-fuel.service <<EOF
+[Unit]
+Description=WanderMage Fuel Prices Scraper
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=$USER
+Group=$USER
+WorkingDirectory=$APP_DIR/scrapers
+EnvironmentFile=$BACKEND_DIR/.env
+Environment="PATH=$BACKEND_DIR/venv/bin:/usr/bin:/bin"
+ExecStart=$BACKEND_DIR/venv/bin/python3 $APP_DIR/scrapers/fuel_scraper.py
+TimeoutStartSec=300
+RemainAfterExit=no
+EOF
+
+# Create maintenance service and timer
+cat > /etc/systemd/system/wandermage-maintenance.service <<EOF
+[Unit]
+Description=WanderMage Data Maintenance
+After=network.target postgresql.service
+Conflicts=wandermage-scraper-poi.service wandermage-scraper-fuel.service
+
+[Service]
+Type=oneshot
+User=$USER
+Group=$USER
+WorkingDirectory=$APP_DIR/scrapers
+EnvironmentFile=$BACKEND_DIR/.env
+Environment="PATH=$BACKEND_DIR/venv/bin:/usr/bin:/bin"
+ExecStart=$BACKEND_DIR/venv/bin/python3 $APP_DIR/scrapers/maintenance_runner.py full
+TimeoutStartSec=1800
+EOF
+
+cat > /etc/systemd/system/wandermage-maintenance.timer <<EOF
+[Unit]
+Description=Run WanderMage maintenance daily
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+echo "  Scraper services created"
+
+# ============================================
 # Test and reload services
 # ============================================
-echo -e "${YELLOW}Step 12: Testing nginx configuration...${NC}"
+echo -e "${YELLOW}Step 13: Testing nginx configuration...${NC}"
 nginx -t
 
-echo -e "${YELLOW}Step 13: Reloading services...${NC}"
+echo -e "${YELLOW}Step 14: Reloading services...${NC}"
 systemctl daemon-reload
+systemctl enable wandermage-ssl
+systemctl start wandermage-ssl
 systemctl enable wandermage
 systemctl restart wandermage || echo -e "${YELLOW}Note: Service may fail if .env is missing${NC}"
+systemctl enable wandermage-scraper-master
+systemctl restart wandermage-scraper-master || echo -e "${YELLOW}Note: Scraper master may fail if .env is missing${NC}"
+systemctl enable wandermage-maintenance.timer
+systemctl start wandermage-maintenance.timer
 systemctl enable nginx
 systemctl reload nginx
 

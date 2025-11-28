@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { settings, auth, users as usersApi } from '../services/api'
+import { settings, auth, users as usersApi, credentials as credentialsApi } from '../services/api'
 import ScraperDashboard from '../components/ScraperDashboard'
+import SerializationManager from '../components/SerializationManager'
 import './AdminPanel.css'
 
 interface SSLInfo {
@@ -36,7 +37,25 @@ interface User {
   last_login?: string
 }
 
-type AdminTab = 'users' | 'api-keys' | 'scraping' | 'ssl'
+type AdminTab = 'users' | 'api-keys' | 'scraping' | 'serialization' | 'ssl' | 'database'
+
+interface CredentialStatus {
+  databases: Record<string, {
+    host: string
+    port: string
+    database: string
+    username: string
+    password_length: number
+    password_preview: string
+  }>
+  security_check: {
+    weak_database_passwords: string[]
+    weak_secret_key: boolean
+    is_secure: boolean
+    recommendations: string[]
+  }
+  needs_rotation: boolean
+}
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<AdminTab>('users')
@@ -80,6 +99,12 @@ export default function AdminPanel() {
   const [savingHHCreds, setSavingHHCreds] = useState(false)
   const [showHHInput, setShowHHInput] = useState(false)
 
+  // Database Credentials State
+  const [credentialStatus, setCredentialStatus] = useState<CredentialStatus | null>(null)
+  const [rotatingCreds, setRotatingCreds] = useState(false)
+  const [generatedPassword, setGeneratedPassword] = useState('')
+  const [showRotateConfirm, setShowRotateConfirm] = useState(false)
+
   useEffect(() => {
     loadInitialData()
   }, [])
@@ -102,6 +127,9 @@ export default function AdminPanel() {
 
       // Load HH credentials status
       await loadHHStatus()
+
+      // Load database credential status
+      await loadCredentialStatus()
 
       // Set default hostname
       setHostname(window.location.hostname || 'localhost')
@@ -150,6 +178,51 @@ export default function AdminPanel() {
     } catch (err) {
       console.error('Error loading HH credentials status:', err)
     }
+  }
+
+  const loadCredentialStatus = async () => {
+    try {
+      const response = await credentialsApi.getStatus()
+      setCredentialStatus(response.data)
+    } catch (err) {
+      console.error('Error loading credential status:', err)
+    }
+  }
+
+  // Database Credential Functions
+  const handleRotateCredentials = async () => {
+    try {
+      setRotatingCreds(true)
+      setError('')
+      setSuccess('')
+
+      const response = await credentialsApi.rotate()
+
+      setGeneratedPassword(response.data.new_password)
+      setSuccess('Credentials rotated successfully! Save the new password and restart the application.')
+      setShowRotateConfirm(false)
+
+      await loadCredentialStatus()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to rotate credentials')
+    } finally {
+      setRotatingCreds(false)
+    }
+  }
+
+  const handleGeneratePassword = async () => {
+    try {
+      setError('')
+      const response = await credentialsApi.generatePassword(32)
+      setGeneratedPassword(response.data.password)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to generate password')
+    }
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setSuccess('Password copied to clipboard!')
   }
 
   // User Management Functions
@@ -475,11 +548,25 @@ export default function AdminPanel() {
           Scraping
         </button>
         <button
+          className={`tab-btn ${activeTab === 'serialization' ? 'active' : ''}`}
+          onClick={() => setActiveTab('serialization')}
+        >
+          <span className="tab-icon">🔢</span>
+          Serialization
+        </button>
+        <button
           className={`tab-btn ${activeTab === 'ssl' ? 'active' : ''}`}
           onClick={() => setActiveTab('ssl')}
         >
           <span className="tab-icon">🔒</span>
           SSL
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'database' ? 'active' : ''}`}
+          onClick={() => setActiveTab('database')}
+        >
+          <span className="tab-icon">🗄️</span>
+          Database
         </button>
       </div>
 
@@ -692,6 +779,16 @@ export default function AdminPanel() {
                   <p className="key-note">
                     Default fuel prices will be used until an API key is configured.
                   </p>
+                  <div className="api-signup-banner">
+                    <a
+                      href="https://www.eia.gov/opendata/register.php"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="api-signup-link-large"
+                    >
+                      Get free EIA API key →
+                    </a>
+                  </div>
                   <button
                     onClick={() => setShowEiaKeyInput(true)}
                     className="btn btn-primary"
@@ -870,6 +967,13 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* Serialization Tab */}
+        {activeTab === 'serialization' && (
+          <div className="admin-section">
+            <SerializationManager />
+          </div>
+        )}
+
         {/* SSL Tab */}
         {activeTab === 'ssl' && (
           <div className="admin-section">
@@ -1010,6 +1114,173 @@ export default function AdminPanel() {
                   {generating ? 'Generating...' : 'Generate Certificate'}
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Database Tab */}
+        {activeTab === 'database' && (
+          <div className="admin-section">
+            <h2>Database Credentials</h2>
+            <p className="section-description">
+              Manage database connection credentials and security settings.
+            </p>
+
+            {/* Security Status */}
+            <div className="admin-card">
+              <h3>Security Status</h3>
+              {credentialStatus ? (
+                <>
+                  <div className={`cert-status ${credentialStatus.security_check.is_secure ? 'cert-valid' : 'cert-warning'}`}>
+                    <span className="status-icon">
+                      {credentialStatus.security_check.is_secure ? '✅' : '⚠️'}
+                    </span>
+                    <span>
+                      {credentialStatus.security_check.is_secure
+                        ? 'Credentials are secure'
+                        : 'Security issues detected'}
+                    </span>
+                  </div>
+
+                  {credentialStatus.security_check.weak_database_passwords.length > 0 && (
+                    <div className="security-warning">
+                      <strong>Weak passwords detected for:</strong>
+                      <ul>
+                        {credentialStatus.security_check.weak_database_passwords.map((db, i) => (
+                          <li key={i}>{db}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {credentialStatus.security_check.weak_secret_key && (
+                    <div className="security-warning">
+                      <strong>Warning:</strong> Application secret key appears to be weak or default.
+                    </div>
+                  )}
+
+                  {credentialStatus.security_check.recommendations.length > 0 && (
+                    <div className="recommendations">
+                      <strong>Recommendations:</strong>
+                      <ul>
+                        {credentialStatus.security_check.recommendations.map((rec, i) => (
+                          <li key={i}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="loading-status">Loading security status...</div>
+              )}
+            </div>
+
+            {/* Database Connections */}
+            <div className="admin-card">
+              <h3>Database Connections</h3>
+              {credentialStatus?.databases && Object.entries(credentialStatus.databases).map(([name, db]) => (
+                <div key={name} className="db-connection">
+                  <h4>{name.toUpperCase()}</h4>
+                  <div className="cert-details">
+                    <div className="detail-row">
+                      <span className="detail-label">Host:</span>
+                      <span className="detail-value">{db.host}:{db.port}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Database:</span>
+                      <span className="detail-value">{db.database}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Username:</span>
+                      <span className="detail-value">{db.username}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">Password:</span>
+                      <span className="detail-value">
+                        {db.password_preview} ({db.password_length} chars)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Generate Password */}
+            <div className="admin-card">
+              <h3>Generate Secure Password</h3>
+              <p className="card-description">
+                Generate a cryptographically secure random password for manual credential updates.
+              </p>
+
+              <div className="key-actions">
+                <button
+                  onClick={handleGeneratePassword}
+                  className="btn btn-secondary"
+                >
+                  Generate Password
+                </button>
+              </div>
+
+              {generatedPassword && (
+                <div className="generated-password">
+                  <div className="password-display">
+                    <code>{generatedPassword}</code>
+                    <button
+                      onClick={() => copyToClipboard(generatedPassword)}
+                      className="btn btn-small"
+                      title="Copy to clipboard"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <p className="password-warning">
+                    Save this password securely! It will not be shown again.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Rotate Credentials */}
+            <div className="admin-card">
+              <h3>Rotate Database Credentials</h3>
+              <p className="card-description">
+                Automatically generate new credentials and update the .env file.
+                You will need to restart the application after rotation.
+              </p>
+
+              {!showRotateConfirm ? (
+                <button
+                  onClick={() => setShowRotateConfirm(true)}
+                  className="btn btn-danger"
+                  disabled={rotatingCreds}
+                >
+                  Rotate Credentials
+                </button>
+              ) : (
+                <div className="confirm-rotate">
+                  <p className="warning-text">
+                    This will generate new database passwords and update the .env file.
+                    You must restart the application after this operation.
+                    Make sure you have a backup of your current credentials.
+                  </p>
+                  <div className="key-actions">
+                    <button
+                      onClick={handleRotateCredentials}
+                      className="btn btn-danger"
+                      disabled={rotatingCreds}
+                    >
+                      {rotatingCreds ? 'Rotating...' : 'Confirm Rotation'}
+                    </button>
+                    <button
+                      onClick={() => setShowRotateConfirm(false)}
+                      className="btn btn-secondary"
+                      disabled={rotatingCreds}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

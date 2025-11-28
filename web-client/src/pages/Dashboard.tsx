@@ -247,7 +247,9 @@ export default function Dashboard() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [currentWeather, setCurrentWeather] = useState<any>(null)
   const [weatherLoading, setWeatherLoading] = useState(false)
+  const [selectedWeatherAlert, setSelectedWeatherAlert] = useState<any>(null)
   const [hhStays, setHhStays] = useState<any>(null)
+  const [selectedHHStay, setSelectedHHStay] = useState<any>(null)
 
   // Navigate to map centered on a specific location with height data
   const showOnMap = (item: any) => {
@@ -411,11 +413,22 @@ export default function Dashboard() {
             {hhStays.stays.map((stay: any) => (
               <div
                 key={stay.id}
+                onClick={() => setSelectedHHStay(stay)}
                 style={{
                   background: 'var(--bg-secondary)',
                   padding: '12px',
                   borderRadius: '8px',
-                  border: '1px solid var(--border-color)'
+                  border: '1px solid var(--border-color)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-primary)'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-color)'
+                  e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
@@ -442,18 +455,425 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  {stay.trip_id ? (
-                    <div style={{ fontSize: '11px', color: '#10b981', fontStyle: 'italic' }}>
-                      ✓ Added to trip
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    {stay.trip_id ? (
+                      <div style={{ fontSize: '11px', color: '#10b981', fontStyle: 'italic' }}>
+                        ✓ Added to trip
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Ready to add to trip
+                      </div>
+                    )}
+                    <div style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>
+                      Click for details →
                     </div>
-                  ) : (
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      Ready to add to trip
-                    </div>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* HH Stay Detail Modal */}
+      {selectedHHStay && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={() => setSelectedHHStay(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderRadius: '12px',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              padding: '24px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+              border: '1px solid var(--border-color)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-primary)' }}>
+                  {selectedHHStay.host_name}
+                </h2>
+                {selectedHHStay.host_type && (
+                  <div style={{ fontSize: '14px', color: 'var(--accent-primary)', marginTop: '4px' }}>
+                    {selectedHHStay.host_type}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedHHStay(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  padding: '4px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Stay Dates */}
+            <div style={{
+              background: 'var(--bg-secondary)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Check-in</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {selectedHHStay.check_in_date ? new Date(selectedHHStay.check_in_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}
+                  </div>
+                  {selectedHHStay.check_in_time && (
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{selectedHHStay.check_in_time}</div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '20px' }}>→</div>
+                  {selectedHHStay.nights && (
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {selectedHHStay.nights} night{selectedHHStay.nights > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Check-out</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {selectedHHStay.check_out_date ? new Date(selectedHHStay.check_out_date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}
+                  </div>
+                  {selectedHHStay.check_out_time && (
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{selectedHHStay.check_out_time}</div>
+                  )}
+                </div>
+              </div>
+              {selectedHHStay.status && (
+                <div style={{
+                  display: 'inline-block',
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: selectedHHStay.is_confirmed ? 'rgba(22, 163, 74, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                  color: selectedHHStay.is_confirmed ? '#16a34a' : '#f59e0b',
+                  fontWeight: 600,
+                  textTransform: 'capitalize',
+                  marginTop: '10px'
+                }}>
+                  {selectedHHStay.status}
+                </div>
+              )}
+            </div>
+
+            {/* Location */}
+            {(selectedHHStay.address || selectedHHStay.city || selectedHHStay.latitude) && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>📍 Location</h3>
+                {selectedHHStay.address && (
+                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    {selectedHHStay.address}
+                  </div>
+                )}
+                {(selectedHHStay.city || selectedHHStay.state || selectedHHStay.zip_code) && (
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {[selectedHHStay.city, selectedHHStay.state, selectedHHStay.zip_code].filter(Boolean).join(', ')}
+                  </div>
+                )}
+                {selectedHHStay.latitude && selectedHHStay.longitude && (
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Coordinates: {selectedHHStay.latitude}, {selectedHHStay.longitude}
+                  </div>
+                )}
+                {selectedHHStay.location_directions && (
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    marginTop: '8px',
+                    padding: '10px',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '6px',
+                    fontStyle: 'italic'
+                  }}>
+                    {selectedHHStay.location_directions}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Parking Info */}
+            {(selectedHHStay.max_rig_size || selectedHHStay.parking_spaces || selectedHHStay.parking_surface || selectedHHStay.check_in_method) && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>🚐 Parking Details</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                  {selectedHHStay.max_rig_size && (
+                    <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Max Rig Size</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedHHStay.max_rig_size}</div>
+                    </div>
+                  )}
+                  {selectedHHStay.parking_spaces && (
+                    <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Parking Spaces</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedHHStay.parking_spaces}</div>
+                    </div>
+                  )}
+                  {selectedHHStay.parking_surface && (
+                    <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Surface</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedHHStay.parking_surface}</div>
+                    </div>
+                  )}
+                  {selectedHHStay.check_in_method && (
+                    <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Check-in Method</div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedHHStay.check_in_method}</div>
+                    </div>
+                  )}
+                </div>
+                {selectedHHStay.parking_instructions && (
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    marginTop: '8px',
+                    padding: '10px',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '6px'
+                  }}>
+                    {selectedHHStay.parking_instructions}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Host Rules - Always show this section */}
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>📋 House Rules</h3>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {/* Pets - explicit true/false from page, no mention = not allowed */}
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  background: selectedHHStay.pets_allowed === true ? 'rgba(22, 163, 74, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  color: selectedHHStay.pets_allowed === true ? '#16a34a' : '#ef4444'
+                }}>
+                  {selectedHHStay.pets_allowed === true ? '✓ Pets Allowed' : '✗ No Pets'}
+                </div>
+                {/* Generators - true/false if mentioned, null = not listed (presumed OK) */}
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  background: selectedHHStay.generators_allowed === true
+                    ? 'rgba(22, 163, 74, 0.15)'
+                    : selectedHHStay.generators_allowed === false
+                      ? 'rgba(239, 68, 68, 0.15)'
+                      : 'rgba(200, 180, 100, 0.15)',
+                  color: selectedHHStay.generators_allowed === true
+                    ? '#16a34a'
+                    : selectedHHStay.generators_allowed === false
+                      ? '#ef4444'
+                      : '#b8860b'
+                }}>
+                  {selectedHHStay.generators_allowed === true
+                    ? '✓ Generators OK'
+                    : selectedHHStay.generators_allowed === false
+                      ? '✗ No Generators'
+                      : '~ Generators Not Listed'}
+                </div>
+                {/* Slideouts - true/false if mentioned, null = not listed (presumed OK) */}
+                <div style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  background: selectedHHStay.slideouts_allowed === true
+                    ? 'rgba(22, 163, 74, 0.15)'
+                    : selectedHHStay.slideouts_allowed === false
+                      ? 'rgba(239, 68, 68, 0.15)'
+                      : 'rgba(200, 180, 100, 0.15)',
+                  color: selectedHHStay.slideouts_allowed === true
+                    ? '#16a34a'
+                    : selectedHHStay.slideouts_allowed === false
+                      ? '#ef4444'
+                      : '#b8860b'
+                }}>
+                  {selectedHHStay.slideouts_allowed === true
+                    ? '✓ Slideouts OK'
+                    : selectedHHStay.slideouts_allowed === false
+                      ? '✗ No Slideouts'
+                      : '~ Slideouts Not Listed'}
+                </div>
+              </div>
+            </div>
+
+            {/* Contact & Links */}
+            {(selectedHHStay.phone || selectedHHStay.website) && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>📞 Contact</h3>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {selectedHHStay.phone && (
+                    <a
+                      href={`tel:${selectedHHStay.phone}`}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        background: 'var(--accent-primary)',
+                        color: 'white',
+                        textDecoration: 'none',
+                        fontSize: '14px'
+                      }}
+                    >
+                      📞 {selectedHHStay.phone}
+                    </a>
+                  )}
+                  {selectedHHStay.website && (
+                    <a
+                      href={selectedHHStay.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--accent-primary)',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        border: '1px solid var(--border-color)'
+                      }}
+                    >
+                      🌐 Website
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Amenities */}
+            {selectedHHStay.amenities && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>✨ Amenities</h3>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {selectedHHStay.amenities}
+                </div>
+              </div>
+            )}
+
+            {/* How to Support */}
+            {selectedHHStay.how_to_support && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>💝 How to Support the Host</h3>
+                <div style={{
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  padding: '10px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '6px'
+                }}>
+                  {selectedHHStay.how_to_support}
+                </div>
+              </div>
+            )}
+
+            {/* Special Instructions / Host Message */}
+            {(selectedHHStay.special_instructions || selectedHHStay.host_message) && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>💬 Host Message</h3>
+                <div style={{
+                  fontSize: '13px',
+                  color: 'var(--text-secondary)',
+                  padding: '10px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '6px'
+                }}>
+                  {selectedHHStay.special_instructions || selectedHHStay.host_message}
+                </div>
+              </div>
+            )}
+
+            {/* Business Hours */}
+            {selectedHHStay.business_hours && (
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>🕐 Business Hours</h3>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {selectedHHStay.business_hours}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+              {selectedHHStay.latitude && selectedHHStay.longitude && (
+                <button
+                  onClick={() => {
+                    sessionStorage.setItem('mapTarget', JSON.stringify({
+                      lat: selectedHHStay.latitude,
+                      lon: selectedHHStay.longitude,
+                      zoom: 15,
+                      name: selectedHHStay.host_name
+                    }))
+                    navigate('/map')
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    background: '#3B82F6',
+                    color: 'white',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 600
+                  }}
+                >
+                  📍 Show on Map
+                </button>
+              )}
+              {selectedHHStay.latitude && selectedHHStay.longitude && (
+                <button
+                  onClick={() => {
+                    window.open(
+                      `https://www.google.com/maps/search/?api=1&query=${selectedHHStay.latitude},${selectedHHStay.longitude}`,
+                      '_blank'
+                    )
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 600
+                  }}
+                >
+                  🗺️ Google Maps
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -469,53 +889,484 @@ export default function Dashboard() {
               <SkeletonStatCard />
             </div>
           ) : currentWeather?.forecast?.forecast?.[0] ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {currentWeather.forecast.forecast[0].icon && (
-                  <img
-                    src={currentWeather.forecast.forecast[0].icon}
-                    alt={currentWeather.forecast.forecast[0].shortForecast}
-                    style={{ width: '64px', height: '64px' }}
-                  />
-                )}
-                <div>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    {currentWeather.forecast.forecast[0].temperature}°{currentWeather.forecast.forecast[0].temperatureUnit}
-                  </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                    {currentWeather.forecast.location?.city}, {currentWeather.forecast.location?.state}
-                  </div>
-                </div>
-              </div>
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  {currentWeather.forecast.forecast[0].name}
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  {currentWeather.forecast.forecast[0].shortForecast}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Wind: {currentWeather.forecast.forecast[0].windSpeed} {currentWeather.forecast.forecast[0].windDirection}
-                </div>
-              </div>
+            <>
+              {/* Active Alerts - Clickable */}
               {currentWeather.forecast.alerts && currentWeather.forecast.alerts.length > 0 && (
-                <div style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                  border: '1px solid #EF4444',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '12px',
-                  color: '#EF4444'
-                }}>
-                  {currentWeather.forecast.alerts.length} active alert(s)
+                <div style={{ marginBottom: '16px' }}>
+                  {currentWeather.forecast.alerts.map((alert: any, index: number) => {
+                    const severityColors: Record<string, { bg: string; border: string; text: string }> = {
+                      'Extreme': { bg: 'rgba(127, 29, 29, 0.3)', border: '#dc2626', text: '#fca5a5' },
+                      'Severe': { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', text: '#ef4444' },
+                      'Moderate': { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b', text: '#f59e0b' },
+                      'Minor': { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#3b82f6' }
+                    };
+                    const colors = severityColors[alert.severity] || severityColors['Minor'];
+
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedWeatherAlert(alert)}
+                        style={{
+                          backgroundColor: colors.bg,
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: '8px',
+                          padding: '12px 16px',
+                          marginBottom: '8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = `0 4px 12px ${colors.border}40`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '16px' }}>
+                                {alert.severity === 'Extreme' ? '🚨' : alert.severity === 'Severe' ? '⚠️' : alert.severity === 'Moderate' ? '⚡' : 'ℹ️'}
+                              </span>
+                              <span style={{ fontWeight: 700, fontSize: '14px', color: colors.text }}>
+                                {alert.event}
+                              </span>
+                              <span style={{
+                                fontSize: '10px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                backgroundColor: colors.border,
+                                color: 'white',
+                                fontWeight: 600,
+                                textTransform: 'uppercase'
+                              }}>
+                                {alert.severity}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                              {alert.headline?.length > 120 ? alert.headline.substring(0, 120) + '...' : alert.headline}
+                            </div>
+                            {alert.onset && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                {new Date(alert.onset).toLocaleString()} — {alert.expires ? new Date(alert.expires).toLocaleString() : 'Until further notice'}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '11px', color: colors.text, marginLeft: '12px', whiteSpace: 'nowrap' }}>
+                            Click for details →
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </div>
+
+              {/* Main Current Conditions */}
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {/* Temperature & Icon */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {currentWeather.forecast.forecast[0].icon && (
+                    <img
+                      src={currentWeather.forecast.forecast[0].icon}
+                      alt={currentWeather.forecast.forecast[0].shortForecast}
+                      style={{ width: '72px', height: '72px' }}
+                    />
+                  )}
+                  <div>
+                    <div style={{ fontSize: '36px', fontWeight: 'bold', color: 'var(--text-primary)', lineHeight: 1 }}>
+                      {currentWeather.forecast.forecast[0].temperature}°{currentWeather.forecast.forecast[0].temperatureUnit}
+                    </div>
+                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      {currentWeather.forecast.location?.city}, {currentWeather.forecast.location?.state}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                      {currentWeather.forecast.forecast[0].name}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conditions Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '12px',
+                  flex: 1,
+                  minWidth: '280px'
+                }}>
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Wind</div>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {currentWeather.forecast.forecast[0].windSpeed} {currentWeather.forecast.forecast[0].windDirection}
+                    </div>
+                  </div>
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Humidity</div>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {currentWeather.forecast.forecast[0].relativeHumidity?.value ?? 'N/A'}%
+                    </div>
+                  </div>
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Precip Chance</div>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {currentWeather.forecast.forecast[0].probabilityOfPrecipitation?.value ?? 0}%
+                    </div>
+                  </div>
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Conditions</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {currentWeather.forecast.forecast[0].shortForecast}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Forecast Text */}
+              {currentWeather.forecast.forecast[0].detailedForecast && (
+                <div style={{
+                  background: 'var(--bg-secondary)',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: 600 }}>
+                    Detailed Forecast
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    {currentWeather.forecast.forecast[0].detailedForecast}
+                  </div>
+                </div>
+              )}
+
+              {/* Extended Forecast (Next 5 periods) */}
+              {currentWeather.forecast.forecast.length > 1 && (
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    Extended Forecast
+                  </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+                    gap: '10px'
+                  }}>
+                    {currentWeather.forecast.forecast.slice(1, 6).map((period: any, index: number) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: 'var(--bg-secondary)',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          border: '1px solid var(--border-color)',
+                          textAlign: 'center'
+                        }}
+                      >
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                          {period.name}
+                        </div>
+                        {period.icon && (
+                          <img
+                            src={period.icon}
+                            alt={period.shortForecast}
+                            style={{ width: '40px', height: '40px', marginBottom: '6px' }}
+                          />
+                        )}
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                          {period.temperature}°
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.3 }}>
+                          {period.shortForecast}
+                        </div>
+                        {(period.probabilityOfPrecipitation?.value ?? 0) > 0 && (
+                          <div style={{
+                            fontSize: '10px',
+                            color: '#3b82f6',
+                            marginTop: '4px',
+                            fontWeight: 600
+                          }}>
+                            💧 {period.probabilityOfPrecipitation.value}%
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
               Unable to load weather. Please allow location access.
             </div>
           )}
+        </div>
+      )}
+
+      {/* Weather Alert Detail Modal */}
+      {selectedWeatherAlert && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={() => setSelectedWeatherAlert(null)}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderRadius: '12px',
+              maxWidth: '700px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+              border: `2px solid ${
+                selectedWeatherAlert.severity === 'Extreme' ? '#dc2626' :
+                selectedWeatherAlert.severity === 'Severe' ? '#ef4444' :
+                selectedWeatherAlert.severity === 'Moderate' ? '#f59e0b' : '#3b82f6'
+              }`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Alert Header */}
+            <div style={{
+              background: selectedWeatherAlert.severity === 'Extreme' ? 'rgba(127, 29, 29, 0.4)' :
+                         selectedWeatherAlert.severity === 'Severe' ? 'rgba(239, 68, 68, 0.3)' :
+                         selectedWeatherAlert.severity === 'Moderate' ? 'rgba(245, 158, 11, 0.3)' :
+                         'rgba(59, 130, 246, 0.3)',
+              padding: '20px 24px',
+              borderBottom: '1px solid var(--border-color)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '24px' }}>
+                      {selectedWeatherAlert.severity === 'Extreme' ? '🚨' :
+                       selectedWeatherAlert.severity === 'Severe' ? '⚠️' :
+                       selectedWeatherAlert.severity === 'Moderate' ? '⚡' : 'ℹ️'}
+                    </span>
+                    <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)' }}>
+                      {selectedWeatherAlert.event}
+                    </h2>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '11px',
+                      padding: '3px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: selectedWeatherAlert.severity === 'Extreme' ? '#dc2626' :
+                                      selectedWeatherAlert.severity === 'Severe' ? '#ef4444' :
+                                      selectedWeatherAlert.severity === 'Moderate' ? '#f59e0b' : '#3b82f6',
+                      color: 'white',
+                      fontWeight: 700,
+                      textTransform: 'uppercase'
+                    }}>
+                      {selectedWeatherAlert.severity}
+                    </span>
+                    {selectedWeatherAlert.urgency && (
+                      <span style={{
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600
+                      }}>
+                        Urgency: {selectedWeatherAlert.urgency}
+                      </span>
+                    )}
+                    {selectedWeatherAlert.certainty && (
+                      <span style={{
+                        fontSize: '11px',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--text-secondary)',
+                        fontWeight: 600
+                      }}>
+                        Certainty: {selectedWeatherAlert.certainty}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedWeatherAlert(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '28px',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    padding: '0 8px',
+                    lineHeight: 1
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Alert Content */}
+            <div style={{ padding: '24px' }}>
+              {/* Timing */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '16px',
+                marginBottom: '20px'
+              }}>
+                <div style={{
+                  background: 'var(--bg-secondary)',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    Effective
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {selectedWeatherAlert.onset ? new Date(selectedWeatherAlert.onset).toLocaleString() : 'Now'}
+                  </div>
+                </div>
+                <div style={{
+                  background: 'var(--bg-secondary)',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    Expires
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {selectedWeatherAlert.expires ? new Date(selectedWeatherAlert.expires).toLocaleString() :
+                     selectedWeatherAlert.ends ? new Date(selectedWeatherAlert.ends).toLocaleString() : 'Until Further Notice'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Area Description */}
+              {selectedWeatherAlert.area_desc && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Affected Area
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-secondary)',
+                    padding: '10px 14px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color)'
+                  }}>
+                    {selectedWeatherAlert.area_desc}
+                  </div>
+                </div>
+              )}
+
+              {/* Headline */}
+              {selectedWeatherAlert.headline && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Summary
+                  </div>
+                  <div style={{
+                    fontSize: '14px',
+                    color: 'var(--text-primary)',
+                    fontWeight: 500,
+                    lineHeight: 1.5
+                  }}>
+                    {selectedWeatherAlert.headline}
+                  </div>
+                </div>
+              )}
+
+              {/* Full Description */}
+              {selectedWeatherAlert.description && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Details
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    background: 'var(--bg-secondary)',
+                    padding: '14px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}>
+                    {selectedWeatherAlert.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {selectedWeatherAlert.instruction && (
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
+                    Safety Instructions
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    background: 'rgba(59, 130, 246, 0.1)',
+                    padding: '14px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }}>
+                    {selectedWeatherAlert.instruction}
+                  </div>
+                </div>
+              )}
+
+              {/* Source */}
+              {selectedWeatherAlert.sender && (
+                <div style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  textAlign: 'right',
+                  fontStyle: 'italic'
+                }}>
+                  Source: {selectedWeatherAlert.sender}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -943,12 +1794,6 @@ export default function Dashboard() {
       {fuelPrices && fuelPrices.has_data && (
         <div className="card mb-4">
           <h2>Current Fuel Prices (EIA Data)</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '1rem' }}>
-            Last updated: {fuelPrices.last_updated ? new Date(fuelPrices.last_updated).toLocaleDateString() : 'N/A'}
-            {fuelPrices.previous_date && (
-              <span> • Compared to {new Date(fuelPrices.previous_date).toLocaleDateString()}</span>
-            )}
-          </p>
 
           <div className="stats-grid" style={{ marginBottom: '1rem' }}>
             <div className="stat-card">
@@ -968,6 +1813,9 @@ export default function Dashboard() {
                 </div>
               )}
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>per gallon</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {fuelPrices.last_updated ? new Date(fuelPrices.last_updated).toLocaleDateString() : ''}
+              </div>
             </div>
             <div className="stat-card">
               <h3>US Diesel</h3>
@@ -994,6 +1842,9 @@ export default function Dashboard() {
                 </div>
               )}
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>per gallon</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {fuelPrices.last_updated ? new Date(fuelPrices.last_updated).toLocaleDateString() : ''}
+              </div>
             </div>
             <div className="stat-card">
               <h3>US Propane</h3>
@@ -1020,6 +1871,9 @@ export default function Dashboard() {
                 </div>
               )}
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>per gallon</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                {fuelPrices.propane_date ? new Date(fuelPrices.propane_date).toLocaleDateString() : (fuelPrices.last_updated ? new Date(fuelPrices.last_updated).toLocaleDateString() : '')}
+              </div>
             </div>
           </div>
 

@@ -1,3 +1,8 @@
+> [!CAUTION]
+> **This project is under active development and is NOT ready for production use.**
+> Features may be incomplete, unstable, or change without notice. Data loss may occur.
+> Use at your own risk - do not rely on this application for actual trip planning yet.
+
 <p align="center">
   <img src="docs/WanderMage_icon.png" alt="WanderMage" width="200"/>
 </p>
@@ -5,11 +10,16 @@
 <h1 align="center">WanderMage</h1>
 
 <p align="center">
-  <strong>Your comprehensive RV trip planning and tracking companion</strong>
+  <strong>A Trip Wizard for your RV Life!</strong>
 </p>
 
 <p align="center">
   Plan routes, track fuel costs, manage stops, and monitor your adventures across the country.
+</p>
+
+<p align="center">
+  <code>v34.0.0</code> &nbsp;|&nbsp; <strong>🛞 Triple Axle</strong>
+  <img src="docs/release_tripleaxle.png" alt="WanderMage" width="400"/>
 </p>
 
 ---
@@ -25,6 +35,24 @@
 - **Comprehensive Metrics** - View stats by trip, month, state, and more
 - **Multi-User Support** - Concurrent access for multiple users
 
+## POI Database
+
+> [!NOTE]
+> **POI data is not included** - Due to uncertainty about the legality of redistributing scraped POI data, this repository does not include pre-populated databases. Instead, WanderMage includes built-in scrapers that allow you to collect this data yourself for personal use.
+
+**Estimated scraping times (running in background):**
+| Data Source | Records | Estimated Time |
+|-------------|---------|----------------|
+| Campgrounds (various sources) | ~27,000 | 4-6 hours |
+| Harvest Hosts locations | ~5,000 | 1-2 hours |
+| Dump stations | ~8,000 | 1-2 hours |
+| Propane stations | ~15,000 | 2-3 hours |
+| Walmart/Cracker Barrel parking | ~6,000 | 1 hour |
+
+*Total: approximately 8-12 hours to build a complete POI database.*
+
+If I determine that redistributing this data is legally permissible, I will upload pre-scraped database dumps to make setup faster.
+
 ## Tech Stack
 
 | Component | Technology |
@@ -33,6 +61,18 @@
 | Web Client | React, TypeScript, Vite, React Leaflet |
 | Mobile | Android (Kotlin/Jetpack Compose) |
 | Auth | JWT Authentication |
+
+## Database Architecture
+
+WanderMage uses a **3-database architecture** ("Triple Axle") for separation of concerns:
+
+| Database | Purpose | Contains |
+|----------|---------|----------|
+| **USER_DB** | Personal data | Users, auth, trips, RV profiles, fuel logs, achievements |
+| **POI_DB** | Points of Interest | Campgrounds, fuel stations, Harvest Hosts, all serialized POIs |
+| **ROAD_DB** | Road hazards | Overpass heights, railroad crossings, clearance restrictions |
+
+All POIs are assigned immutable serial numbers for reliable tracking across updates.
 
 ## Quick Start
 

@@ -178,6 +178,21 @@ export const settings = {
   deleteHHCredentials: () => api.delete('/settings/api-keys/harvest-hosts'),
 }
 
+// Database Credentials
+export const credentials = {
+  getStatus: () => api.get('/credentials/status'),
+  changePassword: (newPassword?: string, dbUser?: string) =>
+    api.post('/credentials/change-password', {
+      new_password: newPassword,
+      db_user: dbUser || 'wandermage'
+    }),
+  rotate: () => api.post('/credentials/rotate'),
+  generatePassword: (length?: number) =>
+    api.post('/credentials/generate-password', { length: length || 32 }),
+  securityCheck: () => api.get('/credentials/security-check'),
+  getEnvVars: () => api.get('/credentials/env-vars'),
+}
+
 // User Preferences (legacy endpoint)
 export const preferences = {
   get: () => api.get('/user/preferences'),

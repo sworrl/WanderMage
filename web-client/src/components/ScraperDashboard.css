@@ -101,6 +101,9 @@
   padding: 16px;
   border: 2px solid transparent;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
 }
 
 .scraper-card.running {
@@ -366,7 +369,7 @@
 .scraper-actions {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .scraper-actions .btn {
@@ -418,6 +421,26 @@
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+/* API signup link */
+.api-signup-link {
+  margin-top: 6px;
+}
+
+.api-signup-link a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 11px;
+  transition: color 0.2s;
+}
+
+.api-signup-link a:hover {
+  color: #10b981;
+  text-decoration: underline;
 }
 
 /* Responsive */
@@ -777,4 +800,243 @@
 
 .btn-secondary:hover {
   background: var(--bg-primary);
+}
+
+/* Scan Configuration Display */
+.scan-config {
+  display: flex;
+  gap: 16px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.config-label {
+  color: var(--text-muted);
+}
+
+.config-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ===========================================
+   Harvest Hosts Group Styles
+   =========================================== */
+
+.scraper-group {
+  grid-column: 1 / -1;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid rgba(139, 92, 246, 0.3);
+}
+
+.harvest-hosts-group {
+  background: linear-gradient(135deg, var(--bg-secondary), rgba(139, 92, 246, 0.05));
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.group-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.group-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+}
+
+.group-badge {
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.group-scrapers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+/* Mini scraper cards inside groups */
+.scraper-card.mini {
+  padding: 14px;
+  background: var(--bg-tertiary);
+  border-width: 1px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scraper-card.mini .scraper-icon {
+  font-size: 22px;
+}
+
+.scraper-card.mini .scraper-title h3 {
+  font-size: 14px;
+}
+
+.scraper-card.mini .intelligent-status {
+  font-size: 12px;
+  padding: 10px;
+}
+
+.scraper-card.mini .scraper-stats.compact {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.scraper-card.mini .scraper-actions {
+  margin-bottom: 8px;
+}
+
+.scraper-card.mini .scraper-description {
+  font-size: 10px;
+}
+
+/* Out of Order card styling */
+.scraper-card.out-of-order {
+  opacity: 0.75;
+  filter: grayscale(30%);
+}
+
+/* ===========================================
+   Out of Order Sticker Overlay
+   =========================================== */
+
+.out-of-order-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.out-of-order-sticker {
+  transform: rotate(-8deg);
+  background: #fef3c7;
+  border: 3px dashed #d97706;
+  border-radius: 8px;
+  padding: 8px 16px;
+  box-shadow:
+    3px 3px 0 rgba(0, 0, 0, 0.2),
+    inset 0 0 20px rgba(234, 179, 8, 0.1);
+  position: relative;
+  animation: sticker-wobble 3s ease-in-out infinite;
+}
+
+@keyframes sticker-wobble {
+  0%, 100% {
+    transform: rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: rotate(-6deg) scale(1.02);
+  }
+}
+
+.sticker-tape {
+  position: absolute;
+  width: 60px;
+  height: 20px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 20%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 80%,
+    transparent 100%
+  );
+  border-radius: 2px;
+  opacity: 0.7;
+}
+
+.sticker-tape.top {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(3deg);
+  background: rgba(255, 214, 102, 0.6);
+}
+
+.sticker-tape.bottom {
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgba(255, 214, 102, 0.6);
+}
+
+.sticker-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sticker-icon {
+  font-size: 20px;
+  animation: tool-wiggle 1s ease-in-out infinite;
+}
+
+@keyframes tool-wiggle {
+  0%, 100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+
+.sticker-text {
+  font-family: 'Impact', 'Arial Black', sans-serif;
+  font-size: 14px;
+  color: #b45309;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.sticker-subtext {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+  font-size: 9px;
+  color: #92400e;
+  font-style: italic;
+}
+
+/* Disabled button for out of order scrapers */
+.btn-disabled {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.btn-disabled:hover {
+  background: var(--bg-tertiary) !important;
 }

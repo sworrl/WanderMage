@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, distinct
 from typing import Dict, List
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..core.database import get_db
 from ..models.trip import Trip as TripModel, TripStop as TripStopModel
@@ -243,30 +243,135 @@ def get_fuel_prices(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
-    """Get fuel price statistics from user's fuel logs"""
-    # Get average prices from fuel logs
-    avg_price = db.query(func.avg(FuelLogModel.price_per_gallon)).filter(
-        FuelLogModel.user_id == current_user.id
+    """Get current EIA fuel price data for dashboard display"""
+    from ..models.fuel_price import FuelPrice
+
+    # Get latest date for regular gasoline (main prices)
+    latest_date = db.query(func.max(FuelPrice.price_date)).filter(
+        FuelPrice.grade == 'regular'
     ).scalar()
 
-    # Get min/max prices
-    min_price = db.query(func.min(FuelLogModel.price_per_gallon)).filter(
-        FuelLogModel.user_id == current_user.id
+    if not latest_date:
+        return {
+            "has_data": False,
+            "message": "No fuel price data available"
+        }
+
+    # Get all prices for the latest date (excludes propane which may be on different date)
+    latest_prices = db.query(FuelPrice).filter(
+        FuelPrice.price_date == latest_date,
+        FuelPrice.grade != 'propane'
+    ).all()
+
+    # Organize by region and grade
+    prices_by_region = {}
+    for price in latest_prices:
+        if price.region not in prices_by_region:
+            prices_by_region[price.region] = {}
+        prices_by_region[price.region][price.grade] = price.price_per_gallon
+
+    # Get propane separately (may have different latest date from EIA)
+    propane_latest_date = db.query(func.max(FuelPrice.price_date)).filter(
+        FuelPrice.grade == 'propane'
     ).scalar()
 
-    max_price = db.query(func.max(FuelLogModel.price_per_gallon)).filter(
-        FuelLogModel.user_id == current_user.id
-    ).scalar()
+    if propane_latest_date:
+        propane_prices = db.query(FuelPrice).filter(
+            FuelPrice.price_date == propane_latest_date,
+            FuelPrice.grade == 'propane'
+        ).all()
+        for price in propane_prices:
+            if price.region not in prices_by_region:
+                prices_by_region[price.region] = {}
+            prices_by_region[price.region]['propane'] = price.price_per_gallon
 
-    # Get most recent price
-    recent_log = db.query(FuelLogModel).filter(
-        FuelLogModel.user_id == current_user.id
-    ).order_by(FuelLogModel.date.desc()).first()
+    # Get US averages
+    us_regular = prices_by_region.get('US', {}).get('regular')
+    us_midgrade = prices_by_region.get('US', {}).get('midgrade')
+    us_premium = prices_by_region.get('US', {}).get('premium')
+    us_diesel = prices_by_region.get('US', {}).get('diesel')
+    us_propane = prices_by_region.get('US', {}).get('propane')
+
+    # Get price from 7 days ago for change calculation
+    seven_days_ago = latest_date - timedelta(days=7)
+    previous_us_regular = db.query(FuelPrice.price_per_gallon).filter(
+        FuelPrice.region == 'US',
+        FuelPrice.grade == 'regular',
+        FuelPrice.price_date <= seven_days_ago
+    ).order_by(FuelPrice.price_date.desc()).first()
+
+    us_regular_change = None
+    previous_date = None
+    if previous_us_regular and us_regular:
+        us_regular_change = round(us_regular - previous_us_regular[0], 3)
+        prev_price_record = db.query(FuelPrice).filter(
+            FuelPrice.region == 'US',
+            FuelPrice.grade == 'regular',
+            FuelPrice.price_date <= seven_days_ago
+        ).order_by(FuelPrice.price_date.desc()).first()
+        if prev_price_record:
+            previous_date = prev_price_record.price_date.isoformat()
+
+    # Get propane change (using propane's own date for comparison)
+    us_propane_change = None
+    propane_date_str = None
+    if us_propane and propane_latest_date:
+        propane_date_str = propane_latest_date.isoformat()
+        propane_seven_days_ago = propane_latest_date - timedelta(days=7)
+        previous_us_propane = db.query(FuelPrice.price_per_gallon).filter(
+            FuelPrice.region == 'US',
+            FuelPrice.grade == 'propane',
+            FuelPrice.price_date <= propane_seven_days_ago
+        ).order_by(FuelPrice.price_date.desc()).first()
+        if previous_us_propane:
+            us_propane_change = round(us_propane - previous_us_propane[0], 3)
+
+    # Build region data with propane included
+    regions = list(prices_by_region.keys())
+    region_names = {
+        'US': 'National Average',
+        'PADD1': 'East Coast',
+        'PADD2': 'Midwest',
+        'PADD3': 'Gulf Coast',
+        'PADD4': 'Rocky Mountain',
+        'PADD5': 'West Coast'
+    }
+
+    # Build prices dict with change values
+    prices_with_changes = {}
+    for region, grades in prices_by_region.items():
+        prices_with_changes[region] = {}
+        for grade, price in grades.items():
+            prev = db.query(FuelPrice.price_per_gallon).filter(
+                FuelPrice.region == region,
+                FuelPrice.grade == grade,
+                FuelPrice.price_date <= seven_days_ago
+            ).order_by(FuelPrice.price_date.desc()).first()
+            change = round(price - prev[0], 3) if prev else None
+            prices_with_changes[region][grade] = {
+                'price': price,
+                'change': change
+            }
 
     return {
-        "average": round(float(avg_price), 3) if avg_price else 0,
-        "min": round(float(min_price), 3) if min_price else 0,
-        "max": round(float(max_price), 3) if max_price else 0,
-        "recent": round(float(recent_log.price_per_gallon), 3) if recent_log else 0,
-        "recent_date": recent_log.date.isoformat() if recent_log else None
+        "has_data": True,
+        "last_updated": latest_date.isoformat(),
+        "previous_date": previous_date,
+        "us_average_regular": us_regular,
+        "us_average_midgrade": us_midgrade,
+        "us_average_premium": us_premium,
+        "us_average_diesel": us_diesel,
+        "us_average_propane": us_propane,
+        "propane_date": propane_date_str,
+        "us_regular_change": us_regular_change,
+        "us_propane_change": us_propane_change,
+        "regions": regions,
+        "region_names": region_names,
+        "prices": prices_with_changes,
+        "by_region": prices_by_region,
+        "padd_regions": {
+            region: prices
+            for region, prices in prices_by_region.items()
+            if region.startswith('PADD')
+        }
     }

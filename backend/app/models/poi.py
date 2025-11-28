@@ -30,7 +30,19 @@ class POI(Base):
     description = Column(Text)
     phone = Column(String)
     website = Column(String)
+    email = Column(String)
     amenities = Column(Text)  # JSON string of amenities
+
+    # Brand/chain info (e.g., "Chevron", "Pilot", "Love's")
+    brand = Column(String, index=True)
+
+    # Google Maps direct link for opening in Maps
+    google_maps_url = Column(String)
+
+    # Status for blacklisting/pruning
+    is_active = Column(Boolean, default=True, index=True)
+    is_verified = Column(Boolean, default=False)
+    is_blacklisted = Column(Boolean, default=False)
 
     # RV-specific
     rv_friendly = Column(Boolean, default=True)

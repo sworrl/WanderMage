@@ -609,6 +609,54 @@ const POI_CATEGORIES = {
     color: '#06B6D4',
     query: 'node["tourism"="information"]({{bbox}});'
   },
+  laundromat: {
+    name: 'Laundromats',
+    icon: createIcon('#60A5FA', '🧺'),
+    color: '#60A5FA',
+    query: 'node["shop"="laundry"]({{bbox}});way["shop"="laundry"]({{bbox}});'
+  },
+  vet: {
+    name: 'Veterinarians',
+    icon: createIcon('#F472B6', '🐕'),
+    color: '#F472B6',
+    query: 'node["amenity"="veterinary"]({{bbox}});way["amenity"="veterinary"]({{bbox}});'
+  },
+  pharmacy: {
+    name: 'Pharmacies',
+    icon: createIcon('#34D399', '💊'),
+    color: '#34D399',
+    query: 'node["amenity"="pharmacy"]({{bbox}});way["amenity"="pharmacy"]({{bbox}});'
+  },
+  tire_shop: {
+    name: 'Tire Shops',
+    icon: createIcon('#6B7280', '🔧'),
+    color: '#6B7280',
+    query: 'node["shop"="tyres"]({{bbox}});way["shop"="tyres"]({{bbox}});'
+  },
+  auto_repair: {
+    name: 'Auto Repair',
+    icon: createIcon('#9CA3AF', '🔩'),
+    color: '#9CA3AF',
+    query: 'node["shop"="car_repair"]({{bbox}});way["shop"="car_repair"]({{bbox}});'
+  },
+  hardware_store: {
+    name: 'Hardware Stores',
+    icon: createIcon('#F59E0B', '🛠️'),
+    color: '#F59E0B',
+    query: 'node["shop"="hardware"]({{bbox}});node["shop"="doityourself"]({{bbox}});'
+  },
+  rv_wash: {
+    name: 'Car/RV Wash',
+    icon: createIcon('#38BDF8', '🚿'),
+    color: '#38BDF8',
+    query: 'node["amenity"="car_wash"]({{bbox}});way["amenity"="car_wash"]({{bbox}});'
+  },
+  rv_service: {
+    name: 'RV Service & Dealers',
+    icon: createIcon('#A78BFA', '🛞'),
+    color: '#A78BFA',
+    query: 'node["shop"="caravan"]({{bbox}});way["shop"="caravan"]({{bbox}});'
+  },
 }
 
 // Tile layer configurations - MANY free map styles

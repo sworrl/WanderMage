@@ -24,6 +24,10 @@ from ..services.harvest_hosts_scraper import (
     sync_harvest_hosts_stays,
     get_harvest_hosts_scraper
 )
+from ..services.hh_trip_matcher import (
+    match_hh_stays_to_trips,
+    auto_match_new_trip
+)
 from ..api.auth import get_current_user
 from ..models.user import User as UserModel
 
@@ -40,6 +44,32 @@ class ScrapeOptions(BaseModel):
     password: str
     scrape_hosts: bool = True
     scrape_stays: bool = True
+
+
+def _run_async_scrape(email: str, password: str, user_id: int, scrape_hosts: bool, scrape_stays: bool):
+    """Wrapper to run async scraper in background thread with new event loop"""
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            start_harvest_hosts_scrape(email, password, user_id, scrape_hosts, scrape_stays)
+        )
+    finally:
+        loop.close()
+
+
+def _run_async_sync_stays(email: str, password: str, user_id: int):
+    """Wrapper to run async stays sync in background thread with new event loop"""
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(
+            sync_harvest_hosts_stays(email, password, user_id)
+        )
+    finally:
+        loop.close()
 
 
 @router.post("/scrape/start")
@@ -62,16 +92,14 @@ async def start_scrape(
             detail="Scraper is already running"
         )
 
-    # Run scrape in background
+    # Run scrape in background with proper event loop
     background_tasks.add_task(
-        asyncio.create_task,
-        start_harvest_hosts_scrape(
-            options.email,
-            options.password,
-            current_user.id,
-            options.scrape_hosts,
-            options.scrape_stays
-        )
+        _run_async_scrape,
+        options.email,
+        options.password,
+        current_user.id,
+        options.scrape_hosts,
+        options.scrape_stays
     )
 
     return {
@@ -93,7 +121,7 @@ async def sync_stays(
 
     Use this to update your upcoming/past stays without re-scraping all hosts.
     """
-    scraper = get_harvest_hosts_scraper()
+    scraper = get_harvest_hosts_scraper(scraper_type='hh_stays_sync')
 
     if scraper.is_running:
         raise HTTPException(
@@ -101,14 +129,12 @@ async def sync_stays(
             detail="Scraper is already running"
         )
 
-    # Run sync in background
+    # Run sync in background with proper event loop
     background_tasks.add_task(
-        asyncio.create_task,
-        sync_harvest_hosts_stays(
-            credentials.email,
-            credentials.password,
-            current_user.id
-        )
+        _run_async_sync_stays,
+        credentials.email,
+        credentials.password,
+        current_user.id
     )
 
     return {
@@ -302,7 +328,31 @@ def get_user_stays(
                 "is_confirmed": s.is_confirmed,
                 "trip_id": s.trip_id,
                 "added_to_route": s.added_to_route,
+                # Location
+                "latitude": s.latitude,
+                "longitude": s.longitude,
+                "address": s.address,
+                "city": s.city,
+                "state": s.state,
+                "zip_code": s.zip_code,
+                "phone": s.phone,
+                # Parking & Check-in
+                "max_rig_size": s.max_rig_size,
+                "parking_spaces": s.parking_spaces,
+                "parking_surface": s.parking_surface,
+                "check_in_method": s.check_in_method,
+                "check_in_time": s.check_in_time,
+                "check_out_time": s.check_out_time,
+                "parking_instructions": s.parking_instructions,
+                "location_directions": s.location_directions,
+                # Host rules
+                "pets_allowed": s.pets_allowed,
+                "generators_allowed": s.generators_allowed,
+                "slideouts_allowed": s.slideouts_allowed,
+                # Host details
+                "how_to_support": s.how_to_support,
                 "special_instructions": s.special_instructions,
+                "photos": s.photos,
                 "last_synced": s.last_synced.isoformat() if s.last_synced else None
             }
             for s in stays
@@ -499,4 +549,56 @@ def get_harvest_hosts_stats(
             "completed": completed_stays,
             "upcoming": upcoming_stays
         }
+    }
+
+
+@router.post("/stays/match-to-trips")
+def match_stays_to_trips(
+    db: Session = Depends(get_db),
+    poi_db: Session = Depends(get_poi_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """
+    Automatically match all HH stays to trips based on dates.
+    Creates trip stops for matched stays.
+    """
+    results = match_hh_stays_to_trips(current_user.id, db, poi_db)
+
+    return {
+        "message": f"Matched {results['matched']} stays to trips",
+        "matched": results['matched'],
+        "unmatched": results['unmatched'],
+        "unmatched_stays": results['unmatched_stays'],
+        "total_processed": results['total_processed']
+    }
+
+
+@router.get("/stays/unmatched")
+def get_unmatched_stays(
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """
+    Get HH stays that haven't been matched to any trip yet.
+    Used for dashboard notifications.
+    """
+    unmatched = db.query(HarvestHostStay).filter(
+        HarvestHostStay.user_id == current_user.id,
+        HarvestHostStay.trip_id == None,
+        HarvestHostStay.check_in_date >= datetime.now(timezone.utc).date()  # Only upcoming
+    ).order_by(HarvestHostStay.check_in_date).all()
+
+    return {
+        "count": len(unmatched),
+        "stays": [
+            {
+                "id": s.id,
+                "host_name": s.host_name,
+                "check_in_date": s.check_in_date.isoformat() if s.check_in_date else None,
+                "check_out_date": s.check_out_date.isoformat() if s.check_out_date else None,
+                "nights": s.nights,
+                "status": s.status
+            }
+            for s in unmatched
+        ]
     }

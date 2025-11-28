@@ -410,6 +410,89 @@ User searches POIs within 25 miles of location
               └──────────────┘
 ```
 
+## Scraper Service Architecture
+
+WanderMage uses a multi-service architecture for data scraping and maintenance:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  wandermage.service                         │
+│                  (FastAPI Backend)                          │
+│  - Sets scraper status to 'running' in DB                  │
+│  - Provides status endpoints                               │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
+                       │ Database Communication
+                       │ (scraper_status table)
+                       ▼
+┌─────────────────────────────────────────────────────────────┐
+│           wandermage-scraper-master.service                 │
+│           (Master Controller)                               │
+│  - Polls scraper_status table every 5 seconds              │
+│  - Detects 'running' status and starts appropriate service │
+│  - Monitors scraper health, restarts if stale              │
+│  - Manages service lifecycle                               │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+         ┌───────────────┼───────────────┐
+         │               │               │
+         ▼               ▼               ▼
+┌────────────────┐ ┌───────────────┐ ┌─────────────────┐
+│ wandermage-    │ │ wandermage-   │ │ wandermage-     │
+│ scraper-poi    │ │ scraper-fuel  │ │ scraper-hh      │
+│ .service       │ │ .service      │ │ .service        │
+│                │ │               │ │                 │
+│ Type: oneshot  │ │ Type: oneshot │ │ Type: oneshot   │
+│ POI Crawler    │ │ EIA Fuel API  │ │ Harvest Hosts   │
+└────────────────┘ └───────────────┘ └─────────────────┘
+```
+
+### Scraper Services
+
+| Service | Description | Data Source | Schedule |
+|---------|-------------|-------------|----------|
+| `wandermage-scraper-poi` | POIs from OpenStreetMap | Overpass API | On-demand |
+| `wandermage-scraper-fuel` | Regional fuel prices | EIA API | Daily |
+| `wandermage-scraper-hh` | Harvest Hosts locations | harvesthosts.com | On-demand |
+
+### Maintenance Service
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│           wandermage-maintenance.timer                      │
+│  - Runs daily at 3:00 AM (with random delay up to 30 min)  │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Triggers
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│           wandermage-maintenance.service                    │
+│  - Waits for active scrapers to finish                     │
+│  - Removes duplicate POIs                                   │
+│  - Validates coordinates                                    │
+│  - Normalizes phone numbers                                 │
+│  - Cleans empty fields                                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Communication Flow
+
+1. **User starts scraper** via dashboard
+2. **API** sets `scraper_status.status = 'running'` with config
+3. **Master controller** detects status change (5-second poll)
+4. **Master controller** starts appropriate systemd service
+5. **Scraper service** reads config from `scraper_status.config`
+6. **Scraper service** updates status in DB as it runs
+7. **Scraper service** marks complete/failed when done
+8. **Master controller** detects completion
+
+### Key Benefits
+
+- **Process Isolation**: Each scraper runs in its own process
+- **Reliability**: systemd manages restarts and dependencies
+- **Observability**: Standard systemd logging and status
+- **No Worker Conflicts**: Scrapers don't compete with API workers
+- **Graceful Shutdown**: Proper signal handling for clean stops
+
 ## Technology Justification
 
 ### Why These Choices?
