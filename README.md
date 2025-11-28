@@ -19,7 +19,9 @@
 
 <p align="center">
   <code>v34.0.0</code> &nbsp;|&nbsp; <strong>🛞 Triple Axle</strong>
-  <img src="docs/release_tripleaxle.png" alt="WanderMage" width="400"/>
+  <br />
+  <br />
+  <img src="docs/release_tripleaxle.png" alt="WanderMage Release" width="400"/>
 </p>
 
 ---
