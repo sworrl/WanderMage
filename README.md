@@ -18,10 +18,10 @@
 </p>
 
 <p align="center">
-  <code>v35.1.0</code> &nbsp;|&nbsp; <strong>Triple Axle</strong>
+  <code>v35.1.0</code> &nbsp;|&nbsp; <strong>Toad Mode</strong>
   <br />
   <br />
-  <img src="docs/release_tripleaxle.png" alt="WanderMage Release" width="400"/>
+  <img src="docs/release_toadmode.png" alt="WanderMage Release - Toad Mode" width="400"/>
 </p>
 
 ---
@@ -107,7 +107,7 @@ WanderMage includes built-in scrapers to collect data for personal use:
 
 ## Database Architecture
 
-WanderMage uses a **3-database architecture** ("Triple Axle") for data isolation:
+WanderMage uses a **3-database architecture** for data isolation:
 
 | Database | Purpose | Contains |
 |----------|---------|----------|
