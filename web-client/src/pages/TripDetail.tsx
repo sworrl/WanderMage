@@ -158,6 +158,37 @@ interface GapAnalysis {
   message: string
 }
 
+// Camera tracking analysis result interface
+interface CameraAnalysis {
+  total_cameras: number
+  route_distance_miles: number
+  cameras_per_mile: number
+  tracked_segments: number
+  untracked_segments: number
+  tracking_percentage: number
+  longest_untracked_miles: number
+  first_camera: {
+    name: string
+    city: string
+    state: string
+    operator: string
+    route_mile: number
+    route_percentage: number
+  } | null
+  last_camera: {
+    name: string
+    city: string
+    state: string
+    operator: string
+    route_mile: number
+    route_percentage: number
+  } | null
+  by_state: Record<string, number>
+  by_city: Record<string, number>
+  by_operator: Record<string, number>
+  unique_operators: number
+}
+
 export default function TripDetail() {
   const { id } = useParams<{ id: string }>()
   const [trip, setTrip] = useState<any>(null)
@@ -166,6 +197,11 @@ export default function TripDetail() {
   // Gap analysis state
   const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null)
   const [analyzingGaps, setAnalyzingGaps] = useState(false)
+
+  // Camera tracking analysis state
+  const [cameraAnalysis, setCameraAnalysis] = useState<CameraAnalysis | null>(null)
+  const [analyzingCameras, setAnalyzingCameras] = useState(false)
+  const [showCameraDetails, setShowCameraDetails] = useState(false)
 
   // Recalculate state
   const [recalculating, setRecalculating] = useState(false)
@@ -198,6 +234,13 @@ export default function TripDetail() {
     }
   }, [trip?.id, trip?.stops?.length])
 
+  // Analyze camera tracking when trip loads
+  useEffect(() => {
+    if (trip?.id && trip.stops?.length >= 2) {
+      analyzeCameras(trip.id)
+    }
+  }, [trip?.id, trip?.stops?.length])
+
   const loadTrip = async (tripId: number) => {
     try {
       const response = await tripsApi.getById(tripId)
@@ -218,6 +261,48 @@ export default function TripDetail() {
       console.error('Failed to analyze gaps:', error)
     } finally {
       setAnalyzingGaps(false)
+    }
+  }
+
+  const analyzeCameras = async (tripId: number) => {
+    setAnalyzingCameras(true)
+    try {
+      // First, fetch the route geometry
+      const routeResponse = await tripsApi.getRoute(tripId)
+      const route = routeResponse.data?.route
+
+      if (!route || route.length < 2) {
+        setCameraAnalysis(null)
+        return
+      }
+
+      // Simplify route for API call (max 200 points)
+      const simplifiedRoute = route.length <= 200
+        ? route
+        : route.filter((_: any, i: number) => i % Math.ceil(route.length / 200) === 0 || i === route.length - 1)
+
+      const routeCoords = JSON.stringify(simplifiedRoute)
+
+      // Fetch camera tracking analysis
+      const token = safeStorage.getItem('token')
+      const response = await fetch(
+        `/api/pois/cameras/along-route?route_coords=${encodeURIComponent(routeCoords)}&buffer_miles=0.1`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      if (response.ok) {
+        const data = await response.json()
+        setCameraAnalysis(data)
+      }
+    } catch (error) {
+      console.error('Failed to analyze cameras:', error)
+    } finally {
+      setAnalyzingCameras(false)
     }
   }
 
@@ -581,6 +666,282 @@ export default function TripDetail() {
             stops={trip.stops}
             rvHeight={rvHeight}
           />
+        </div>
+      )}
+
+      {/* Surveillance Camera Tracking Summary */}
+      {(cameraAnalysis || analyzingCameras) && (
+        <div className="card mb-4" style={{
+          background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(251, 146, 60, 0.05))',
+          borderLeft: '4px solid #EF4444'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📷</span> Surveillance Exposure Analysis
+            </h2>
+            {cameraAnalysis && (
+              <button
+                onClick={() => setShowCameraDetails(!showCameraDetails)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                {showCameraDetails ? 'Hide Details' : 'Show Details'}
+              </button>
+            )}
+          </div>
+
+          {analyzingCameras ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+              <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⟳</span>
+              {' '}Analyzing surveillance cameras along your route...
+            </div>
+          ) : cameraAnalysis && (
+            <>
+              {/* Main Stats */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                <div style={{
+                  background: 'var(--card-bg)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#EF4444' }}>
+                    {cameraAnalysis.total_cameras}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cameras on Route</div>
+                </div>
+                <div style={{
+                  background: 'var(--card-bg)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: cameraAnalysis.tracking_percentage > 50 ? '#EF4444' : '#10B981' }}>
+                    {cameraAnalysis.tracking_percentage}%
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Route Tracked</div>
+                </div>
+                <div style={{
+                  background: 'var(--card-bg)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#F59E0B' }}>
+                    {cameraAnalysis.cameras_per_mile}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cameras/Mile</div>
+                </div>
+                <div style={{
+                  background: 'var(--card-bg)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: '#6366F1' }}>
+                    {cameraAnalysis.unique_operators}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Agencies Tracking</div>
+                </div>
+              </div>
+
+              {/* First/Last Camera */}
+              {(cameraAnalysis.first_camera || cameraAnalysis.last_camera) && (
+                <div style={{
+                  background: 'var(--card-bg)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, marginBottom: '10px', color: 'var(--text-muted)' }}>
+                    TRACKING TIMELINE
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {cameraAnalysis.first_camera && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          background: '#22C55E',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          minWidth: '50px',
+                          textAlign: 'center'
+                        }}>
+                          FIRST
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 500 }}>
+                            {cameraAnalysis.first_camera.name || `${cameraAnalysis.first_camera.city}, ${cameraAnalysis.first_camera.state}`}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Mile {cameraAnalysis.first_camera.route_mile} ({cameraAnalysis.first_camera.route_percentage}% into trip)
+                            {cameraAnalysis.first_camera.operator && ` • ${cameraAnalysis.first_camera.operator}`}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {cameraAnalysis.last_camera && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          background: '#EF4444',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          minWidth: '50px',
+                          textAlign: 'center'
+                        }}>
+                          LAST
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '13px', fontWeight: 500 }}>
+                            {cameraAnalysis.last_camera.name || `${cameraAnalysis.last_camera.city}, ${cameraAnalysis.last_camera.state}`}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            Mile {cameraAnalysis.last_camera.route_mile} ({cameraAnalysis.last_camera.route_percentage}% into trip)
+                            {cameraAnalysis.last_camera.operator && ` • ${cameraAnalysis.last_camera.operator}`}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tracking Summary */}
+              <div style={{
+                background: cameraAnalysis.tracking_percentage > 75 ? 'rgba(239, 68, 68, 0.1)' :
+                            cameraAnalysis.tracking_percentage > 50 ? 'rgba(245, 158, 11, 0.1)' :
+                            'rgba(16, 185, 129, 0.1)',
+                padding: '12px',
+                borderRadius: '8px',
+                marginBottom: showCameraDetails ? '12px' : '0'
+              }}>
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: cameraAnalysis.tracking_percentage > 75 ? '#DC2626' :
+                         cameraAnalysis.tracking_percentage > 50 ? '#D97706' : '#059669',
+                  marginBottom: '6px'
+                }}>
+                  {cameraAnalysis.tracking_percentage > 75 ? '🚨 Heavy Surveillance Route' :
+                   cameraAnalysis.tracking_percentage > 50 ? '⚠️ Moderate Surveillance' :
+                   cameraAnalysis.tracking_percentage > 25 ? '📷 Light Surveillance' :
+                   '✓ Low Surveillance Route'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  You will pass {cameraAnalysis.total_cameras} surveillance cameras over {cameraAnalysis.route_distance_miles} miles.
+                  {cameraAnalysis.longest_untracked_miles > 0 && (
+                    <> Your longest untracked stretch is {cameraAnalysis.longest_untracked_miles} miles.</>
+                  )}
+                  {cameraAnalysis.unique_operators > 0 && (
+                    <> {cameraAnalysis.unique_operators} different agencies will have access to your travel data.</>
+                  )}
+                </div>
+              </div>
+
+              {/* Detailed Breakdown */}
+              {showCameraDetails && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  {/* By State */}
+                  {Object.keys(cameraAnalysis.by_state).length > 0 && (
+                    <div style={{
+                      background: 'var(--card-bg)',
+                      padding: '12px',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                        BY STATE
+                      </div>
+                      {Object.entries(cameraAnalysis.by_state).slice(0, 5).map(([state, count]) => (
+                        <div key={state} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <StateSVG stateCode={state} size={20} />
+                            {STATE_NAMES[state] || state}
+                          </span>
+                          <span style={{ fontWeight: 600 }}>{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* By Operator */}
+                  {Object.keys(cameraAnalysis.by_operator).length > 0 && (
+                    <div style={{
+                      background: 'var(--card-bg)',
+                      padding: '12px',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                        TOP OPERATORS
+                      </div>
+                      {Object.entries(cameraAnalysis.by_operator).slice(0, 5).map(([operator, count]) => (
+                        <div key={operator} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                          <span style={{
+                            maxWidth: '140px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>{operator}</span>
+                          <span style={{ fontWeight: 600 }}>{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* By City */}
+                  {Object.keys(cameraAnalysis.by_city).length > 0 && (
+                    <div style={{
+                      background: 'var(--card-bg)',
+                      padding: '12px',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-muted)' }}>
+                        TOP CITIES
+                      </div>
+                      {Object.entries(cameraAnalysis.by_city).slice(0, 5).map(([city, count]) => (
+                        <div key={city} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                          <span style={{
+                            maxWidth: '140px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>{city}</span>
+                          <span style={{ fontWeight: 600 }}>{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Privacy Notice */}
+              <div style={{
+                marginTop: '12px',
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span>ℹ️</span>
+                <span>
+                  Camera data from <a href="https://deflock.me" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }}>DeFlock.me</a>.
+                  Flock/ALPR cameras capture license plates and share data across law enforcement networks.
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
 
