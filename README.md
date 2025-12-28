@@ -14,11 +14,11 @@
 </p>
 
 <p align="center">
-  Plan routes, track fuel costs, manage stops, and monitor your adventures across the country.
+  Plan routes, track fuel costs, discover POIs, monitor road hazards, and manage your adventures across the country.
 </p>
 
 <p align="center">
-  <code>v34.0.0</code> &nbsp;|&nbsp; <strong>🛞 Triple Axle</strong>
+  <code>v35.1.0</code> &nbsp;|&nbsp; <strong>Triple Axle</strong>
   <br />
   <br />
   <img src="docs/release_tripleaxle.png" alt="WanderMage Release" width="400"/>
@@ -28,61 +28,106 @@
 
 ## Features
 
-- **Trip Planning** - Create multi-day trips with unlimited stops and route visualization
-- **Interactive Maps** - View trips on interactive maps with full route display
-- **Fuel Tracking** - Log fill-ups, calculate MPG, and track cost per mile
-- **Overpass Height Monitoring** - Track bridge clearances to avoid low overpasses
-- **RV Profile Management** - Store your RV specs, photos, and fuel information
-- **POI Database** - Search and save campgrounds, attractions, and services
-- **Comprehensive Metrics** - View stats by trip, month, state, and more
-- **Multi-User Support** - Concurrent access for multiple users
+### Trip Planning & Management
+- **Multi-Day Trips** - Create trips with unlimited stops and waypoints
+- **Route Visualization** - Interactive maps with full route display and turn-by-turn navigation
+- **Stop Management** - Add, reorder, and manage stops with notes and timing
+- **Trip Import** - Import stops from spreadsheets or other sources
 
-## POI Database
+### Interactive Map
+- **Multiple Base Layers** - Satellite, street, terrain, and dark mode maps
+- **POI Overlays** - Toggle campgrounds, fuel stations, rest areas, and more
+- **Height Restrictions** - Bridge and tunnel clearances with RV-specific warnings
+- **Railroad Crossings** - Crossing locations with safety equipment indicators
+- **Surveillance Cameras** - Flock/ALPR camera locations with directional cones (data from [DeFlock.me](https://deflock.me))
+- **Drive-Time Isochrones** - Visualize how far you can drive in 1, 2, or 3 hours
+- **Weather Overlay** - Current conditions at your location
+- **Holiday Effects** - Seasonal animations (snow, fireworks, hearts, etc.)
+
+### Fuel Management
+- **Fuel Logging** - Track fill-ups with price, gallons, and odometer readings
+- **MPG Calculations** - Automatic fuel economy tracking per trip and overall
+- **Cost Analysis** - Track cost per mile and total fuel expenses
+- **Regional Fuel Prices** - Live diesel/gas prices from EIA data
+
+### RV Profile Management
+- **Vehicle Specs** - Store height, length, weight, and fuel capacity
+- **Multiple Profiles** - Manage specs for different vehicles (toad, trailer, etc.)
+- **Photo Gallery** - Upload photos of your rig
+- **Height Alerts** - Automatic warnings when approaching low clearances
+
+### Road Hazard Monitoring
+- **Height Restrictions** - 38,000+ bridge/tunnel clearances across the US
+- **Weight Limits** - Bridge and road weight restrictions
+- **Railroad Crossings** - 207,000+ crossing locations with safety info
+- **Route Checking** - Automatic clearance checking along planned routes
+
+### Privacy & Security Features
+- **Surveillance Camera Mapping** - 73,000+ Flock/ALPR camera locations
+- **Shodan Integration** - Links to check for exposed camera feeds
+- **Ring Camera Warnings** - Alerts about warrantless police access programs
+
+### Harvest Hosts Integration
+- **Stays Sync** - Import your past and upcoming Harvest Hosts stays
+- **Location Database** - Browse all Harvest Hosts locations on the map
+
+---
+
+## Data Sources & Scrapers
+
+WanderMage includes built-in scrapers to collect data for personal use:
+
+| Scraper | Data Source | Records | Description |
+|---------|-------------|---------|-------------|
+| **POI Crawler** | OpenStreetMap | ~100,000+ | Truck stops, campgrounds, RV parks, dump stations, rest areas, gas stations, Walmart locations |
+| **Height Restrictions** | OpenStreetMap | ~38,000 | Bridge and tunnel clearances under 15 feet |
+| **Railroad Crossings** | OpenStreetMap | ~207,000 | Crossings with gate, signal, and safety info |
+| **Flock Cameras** | [FLOCK GitHub](https://github.com/Ringmast4r/FLOCK) | ~73,000 | Surveillance/ALPR camera locations |
+| **Fuel Prices** | EIA API | Live | Regional diesel and gasoline prices |
+| **Harvest Hosts** | Your HH Account | Variable | Your personal stays and bookings |
 
 > [!NOTE]
-> **POI data is not included** - Due to uncertainty about the legality of redistributing scraped POI data, this repository does not include pre-populated databases. Instead, WanderMage includes built-in scrapers that allow you to collect this data yourself for personal use.
+> **POI data is not included** - Due to licensing concerns, pre-populated databases are not distributed. Use the built-in Admin Panel to run scrapers and build your own database.
 
-**Estimated scraping times (running in background):**
-| Data Source | Records | Estimated Time |
-|-------------|---------|----------------|
-| Campgrounds (various sources) | ~27,000 | 4-6 hours |
-| Harvest Hosts locations | ~5,000 | 1-2 hours |
-| Dump stations | ~8,000 | 1-2 hours |
-| Propane stations | ~15,000 | 2-3 hours |
-| Walmart/Cracker Barrel parking | ~6,000 | 1 hour |
-
-*Total: approximately 8-12 hours to build a complete POI database.*
-
-If I determine that redistributing this data is legally permissible, I will upload pre-scraped database dumps to make setup faster.
+---
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|------------|
-| Backend | FastAPI, PostgreSQL + PostGIS, SQLAlchemy |
-| Web Client | React, TypeScript, Vite, React Leaflet |
-| Mobile | Android (Kotlin/Jetpack Compose) |
-| Auth | JWT Authentication |
+| **Backend** | FastAPI, Python 3.10+, SQLAlchemy, Pydantic |
+| **Database** | PostgreSQL 14+ with PostGIS extension |
+| **Web Client** | React 18, TypeScript, Vite, React Leaflet |
+| **Mobile** | Android (Kotlin/Jetpack Compose) - *in development* |
+| **Auth** | JWT tokens with bcrypt password hashing |
+| **Maps** | Leaflet with OpenStreetMap, Satellite, and custom tiles |
+| **Reverse Proxy** | Nginx with SSL termination |
+
+---
 
 ## Database Architecture
 
-WanderMage uses a **3-database architecture** ("Triple Axle") for separation of concerns:
+WanderMage uses a **3-database architecture** ("Triple Axle") for data isolation:
 
 | Database | Purpose | Contains |
 |----------|---------|----------|
-| **USER_DB** | Personal data | Users, auth, trips, RV profiles, fuel logs, achievements |
-| **POI_DB** | Points of Interest | Campgrounds, fuel stations, Harvest Hosts, all serialized POIs |
-| **ROAD_DB** | Road hazards | Overpass heights, railroad crossings, clearance restrictions |
+| **wandermage** | User data | Users, auth, trips, RV profiles, fuel logs, preferences, achievements |
+| **wandermage_pois** | Points of Interest | Campgrounds, fuel stations, Harvest Hosts, surveillance cameras |
+| **wandermage_roads** | Road hazards | Overpass heights, railroad crossings, weight restrictions |
 
-All POIs are assigned immutable serial numbers for reliable tracking across updates.
+All POIs use immutable 64-character serial numbers for reliable cross-system tracking.
+
+---
 
 ## Quick Start
 
 ### Prerequisites
 
+- Ubuntu/Debian Linux (tested on Ubuntu 24.04+)
 - Python 3.10+
-- PostgreSQL 14+ with PostGIS
+- PostgreSQL 14+ with PostGIS extension
 - Node.js 18+
+- Nginx (for production deployment)
 
 ### Installation
 
@@ -91,68 +136,170 @@ All POIs are assigned immutable serial numbers for reliable tracking across upda
 git clone https://github.com/sworrl/WanderMage.git
 cd WanderMage
 
-# Run the setup script
+# Run the setup script (installs dependencies, creates databases)
 ./scripts/setup.sh
 
-# Start the application
+# Start development servers
 ./scripts/start.sh
 ```
 
-**Development mode:**
-- Web app: `http://localhost:3000`
-- API docs: `http://localhost:8000/docs`
+### Production Deployment
 
-**Production/deployed mode** (after running `./scripts/deploy.sh`):
-- Web app: `https://wandermage.localhost`
-- API docs: `https://wandermage.localhost/api/docs`
+```bash
+# Deploy to /opt/wandermage with systemd services
+./scripts/deploy.sh
 
-> The deployment script automatically adds `wandermage.localhost` to your `/etc/hosts` file.
+# Access at https://wandermage.localhost
+```
+
+### Access Points
+
+| Mode | Web App | API Docs |
+|------|---------|----------|
+| Development | `http://localhost:3000` | `http://localhost:8000/docs` |
+| Production | `https://wandermage.localhost` | `https://wandermage.localhost/api/docs` |
 
 ### Default Credentials
 
-If you loaded sample data during setup:
-- **Username:** demo
-- **Password:** demo123
+After setup with sample data:
+- **Username:** `demo`
+- **Password:** `demo123`
+
+---
 
 ## Project Structure
 
 ```
 WanderMage/
-├── backend/         # FastAPI server
-├── web-client/      # React frontend
-├── mobile-client/   # Android app
-├── scripts/         # Setup and deployment scripts
-├── docs/            # Documentation
-├── LICENSE
+├── backend/              # FastAPI server
+│   ├── app/
+│   │   ├── api/          # API route handlers
+│   │   ├── core/         # Config, database, security
+│   │   ├── models/       # SQLAlchemy models
+│   │   └── schemas/      # Pydantic schemas
+│   └── requirements.txt
+├── web-client/           # React frontend
+│   ├── src/
+│   │   ├── components/   # Reusable UI components
+│   │   ├── pages/        # Page components
+│   │   ├── services/     # API client
+│   │   └── utils/        # Helper functions
+│   └── package.json
+├── scrapers/             # Data collection scripts
+│   ├── poi_scraper.py    # POI from OpenStreetMap
+│   ├── heights_scraper.py
+│   ├── flock_scraper.py
+│   └── ...
+├── scripts/              # Setup and deployment
+│   ├── setup.sh
+│   ├── deploy.sh
+│   └── start.sh
+├── docs/                 # Documentation
 └── README.md
 ```
 
-> **Note:** The setup and deployment scripts have only been tested on (K)Ubuntu 25.10 and lightly at that. Contributions and compatibility reports for other distributions are welcome.
+---
 
-## Documentation
+## API Overview
 
-Detailed documentation is available in the `docs/` folder:
+### Core Endpoints
 
-- [Getting Started](docs/GETTING_STARTED.md) - First steps after installation
-- [Setup Guide](docs/SETUP.md) - Detailed installation instructions
-- [Architecture](docs/ARCHITECTURE.md) - System design overview
-- [Quick Reference](docs/QUICK_REFERENCE.md) - Common commands and endpoints
+| Category | Endpoints | Description |
+|----------|-----------|-------------|
+| **Auth** | `/api/auth/*` | Register, login, token refresh |
+| **Trips** | `/api/trips/*` | CRUD for trips and stops |
+| **Fuel** | `/api/fuel-logs/*` | Fuel log management |
+| **POIs** | `/api/pois/*` | POI search and management |
+| **Heights** | `/api/overpass-heights/*` | Bridge clearance queries |
+| **Cameras** | `/api/pois/cameras/*` | Surveillance camera data |
+| **Weather** | `/api/weather/*` | Current conditions |
+| **Metrics** | `/api/metrics/*` | Trip and fuel statistics |
+| **Scrapers** | `/api/scraper-dashboard/*` | Control data scrapers |
 
-## API Endpoints
+### Key API Features
 
-| Category | Endpoints |
-|----------|-----------|
-| Auth | `/api/auth/register`, `/api/auth/login`, `/api/auth/me` |
-| Trips | `/api/trips`, `/api/trips/{id}`, `/api/trips/{id}/stops` |
-| Fuel | `/api/fuel-logs`, `/api/fuel-logs/{id}` |
-| POIs | `/api/pois`, `/api/pois/search` |
-| Metrics | `/api/metrics/trip-metrics`, `/api/metrics/fuel-metrics` |
+- **Bounding Box Search** - Efficiently query data within map viewport
+- **Route-Based Queries** - Find hazards along a planned route
+- **Spatial Indexing** - PostGIS-powered geographic queries
+- **Real-time Updates** - WebSocket support for live scraper status
 
-Full API documentation available at `http://localhost:8000/docs` (dev) or `https://wandermage.localhost/api/docs` (deployed)
+Full API documentation available at `/api/docs` (Swagger UI) or `/api/redoc` (ReDoc).
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Create `.env` in the backend directory:
+
+```env
+# Database URLs
+DATABASE_URL=postgresql://user:pass@localhost/wandermage
+POI_DATABASE_URL=postgresql://user:pass@localhost/wandermage_pois
+ROAD_DATABASE_URL=postgresql://user:pass@localhost/wandermage_roads
+
+# Security
+SECRET_KEY=your-secret-key-here
+
+# Optional integrations
+SHODAN_API_KEY=your-shodan-key        # For camera vulnerability checks
+HARVEST_HOSTS_EMAIL=your@email.com    # For HH sync
+HARVEST_HOSTS_PASSWORD=yourpassword
+```
+
+---
+
+## Admin Panel
+
+Access the Admin Panel from the sidebar to:
+
+- **Monitor Scrapers** - View status, progress, and logs
+- **Start/Stop Scrapers** - Control data collection
+- **View Statistics** - Database counts and health metrics
+- **Manage Users** - User administration (if admin)
+
+---
+
+## Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Areas Needing Help
+
+- Mobile app development (Android/iOS)
+- Additional POI data sources
+- International support (non-US roads)
+- UI/UX improvements
+- Documentation
+
+---
+
+## Credits & Acknowledgments
+
+- **Camera Data**: [DeFlock.me](https://deflock.me) / [FLOCK GitHub](https://github.com/Ringmast4r/FLOCK)
+- **Map Data**: [OpenStreetMap](https://www.openstreetmap.org) contributors
+- **Fuel Prices**: [U.S. Energy Information Administration](https://www.eia.gov)
+- **Map Tiles**: OpenStreetMap, Esri, USGS
+
+---
 
 ## License
 
-This project is licensed under the PolyForm Noncommercial License 1.0.0 - free for personal and educational use, not for commercial redistribution. See [LICENSE](LICENSE) for details.
+This project is licensed under the **PolyForm Noncommercial License 1.0.0** - free for personal and educational use, not for commercial redistribution. See [LICENSE](LICENSE) for details.
+
+---
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/sworrl/WanderMage/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/sworrl/WanderMage/discussions)
 
 ---
 

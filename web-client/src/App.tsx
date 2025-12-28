@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Layout from './components/Layout'
+import HolidayEffects, { getCurrentHoliday } from './components/HolidayEffects'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
 import Dashboard from './pages/Dashboard'
@@ -23,6 +24,33 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(hasToken)
   const [setupRequired, setSetupRequired] = useState<boolean | null>(hasToken ? false : null)
   const [loading, setLoading] = useState(!hasToken) // Only show loading if no token
+
+  // Holiday effects state - only show if there's an active holiday
+  const [holidayEffectsEnabled, setHolidayEffectsEnabled] = useState(() => {
+    const saved = safeStorage.getItem('holidayEffectsEnabled')
+    return saved !== 'false' // Default to true
+  })
+  const currentHoliday = getCurrentHoliday()
+  const hasActiveHoliday = !!currentHoliday
+
+  // Debug log for holiday detection
+  console.log('Holiday check:', { currentHoliday, hasActiveHoliday, holidayEffectsEnabled })
+
+  // Save holiday preference
+  useEffect(() => {
+    safeStorage.setItem('holidayEffectsEnabled', holidayEffectsEnabled.toString())
+  }, [holidayEffectsEnabled])
+
+  // Listen for holiday toggle events from QuickSettings
+  useEffect(() => {
+    const handleHolidayToggle = (event: CustomEvent) => {
+      setHolidayEffectsEnabled(event.detail)
+    }
+    window.addEventListener('holidayToggle', handleHolidayToggle as EventListener)
+    return () => {
+      window.removeEventListener('holidayToggle', handleHolidayToggle as EventListener)
+    }
+  }, [])
 
   useEffect(() => {
     // If already authenticated, no need to check setup
@@ -119,34 +147,39 @@ function App() {
   }
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
-      } />
+    <>
+      {/* Holiday Effects - global, on every page (toggle moved to QuickSettings) */}
+      {hasActiveHoliday && <HolidayEffects enabled={holidayEffectsEnabled} />}
 
-      {/* Protected routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/trips" element={<Trips />} />
-        <Route path="/trips/new" element={<TripPlanWizard />} />
-        <Route path="/trips/manual" element={<TripForm />} />
-        <Route path="/trips/:id" element={<TripDetail />} />
-        <Route path="/trips/:id/edit" element={<TripForm />} />
-        <Route path="/rv-profiles" element={<RVProfiles />} />
-        <Route path="/fuel-logs" element={<FuelLogs />} />
-        <Route path="/map" element={<MapView />} />
-        <Route path="/engage-the-mage" element={<EngageTheMage />} />
-        <Route path="/overpass-search" element={<Navigate to="/engage-the-mage" replace />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/users" element={<Navigate to="/admin" replace />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />
+        } />
 
-      {/* Catch-all redirect */}
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-    </Routes>
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/trips" element={<Trips />} />
+          <Route path="/trips/new" element={<TripPlanWizard />} />
+          <Route path="/trips/manual" element={<TripForm />} />
+          <Route path="/trips/:id" element={<TripDetail />} />
+          <Route path="/trips/:id/edit" element={<TripForm />} />
+          <Route path="/rv-profiles" element={<RVProfiles />} />
+          <Route path="/fuel-logs" element={<FuelLogs />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/engage-the-mage" element={<EngageTheMage />} />
+          <Route path="/overpass-search" element={<Navigate to="/engage-the-mage" replace />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/users" element={<Navigate to="/admin" replace />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+      </Routes>
+    </>
   )
 }
 

@@ -80,6 +80,7 @@ class OverpassHeight(Base):
     height_inches = Column(Float)
 
     # Additional info
+    restriction_type = Column(String)  # bridge, tunnel, sign, etc.
     description = Column(Text)
     direction = Column(String)  # northbound, southbound, etc.
 
@@ -120,6 +121,42 @@ class RailroadCrossing(Base):
 
     # Track info
     tracks = Column(Integer)
+
+    # Address
+    state = Column(String(2), index=True)
+
+    # Data source
+    source = Column(String)
+    verified = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class WeightRestriction(Base):
+    """Bridge and road weight restrictions for heavy vehicles"""
+    __tablename__ = "weight_restrictions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    serial = Column(String(64), unique=True, index=True)  # 64-char unique identifier
+
+    name = Column(String)
+    road_name = Column(String, index=True)
+
+    # Location
+    location = Column(Geography(geometry_type='POINT', srid=4326))
+    latitude = Column(Float, index=True)
+    longitude = Column(Float, index=True)
+
+    # Weight limit in tons
+    weight_tons = Column(Float, nullable=False, index=True)
+    weight_lbs = Column(Float)  # Calculated from tons
+
+    # Additional info
+    restriction_type = Column(String)  # bridge, road, seasonal, etc.
+    applies_to = Column(String)  # trucks, all_vehicles, per_axle, etc.
+    description = Column(Text)
+    direction = Column(String)  # northbound, southbound, both, etc.
 
     # Address
     state = Column(String(2), index=True)

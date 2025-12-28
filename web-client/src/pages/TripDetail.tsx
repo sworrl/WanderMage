@@ -167,6 +167,9 @@ export default function TripDetail() {
   const [gapAnalysis, setGapAnalysis] = useState<GapAnalysis | null>(null)
   const [analyzingGaps, setAnalyzingGaps] = useState(false)
 
+  // Recalculate state
+  const [recalculating, setRecalculating] = useState(false)
+
   // Stop editing state
   const [editingStop, setEditingStop] = useState<StopData | null>(null)
   const [showAddStop, setShowAddStop] = useState(false)
@@ -215,6 +218,129 @@ export default function TripDetail() {
       console.error('Failed to analyze gaps:', error)
     } finally {
       setAnalyzingGaps(false)
+    }
+  }
+
+  const recalculateTrip = async () => {
+    if (!trip || !id) return
+
+    const stops = trip.stops?.sort((a: any, b: any) => a.stop_order - b.stop_order) || []
+    if (stops.length < 2) {
+      alert('Need at least a start and destination to recalculate')
+      return
+    }
+
+    const startStop = stops[0]
+    const endStop = stops[stops.length - 1]
+
+    if (!confirm(`This will recalculate the route from "${startStop.name}" to "${endStop.name}" and replace intermediate search areas. Continue?`)) {
+      return
+    }
+
+    setRecalculating(true)
+    try {
+      // Get user preferences for daily miles
+      const userPrefs = JSON.parse(safeStorage.getItem('userPreferences') || '{}')
+      const dailyMiles = userPrefs.daily_miles_target || 300
+
+      // Plan the new route FIRST (before deleting anything)
+      const planResponse = await fetch('/api/trips/plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${safeStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          name: trip.name,
+          start: {
+            name: startStop.name,
+            latitude: startStop.latitude,
+            longitude: startStop.longitude,
+            city: startStop.city,
+            state: startStop.state
+          },
+          destination: {
+            name: endStop.name,
+            latitude: endStop.latitude,
+            longitude: endStop.longitude,
+            city: endStop.city,
+            state: endStop.state
+          },
+          departure_datetime: trip.start_date || new Date().toISOString(),
+          daily_miles_target: dailyMiles,
+          max_driving_hours: userPrefs.max_driving_hours || 8,
+          route_preference: 'fastest'
+        })
+      })
+
+      if (!planResponse.ok) throw new Error('Failed to plan route')
+      const planData = await planResponse.json()
+
+      // Only now delete intermediate stops (keep first and last)
+      const intermediateStops = stops.slice(1, -1)
+      for (const stop of intermediateStops) {
+        await fetch(`/api/trips/${id}/stops/${stop.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${safeStorage.getItem('token')}` }
+        })
+      }
+
+      // Add new suggested stops
+      let stopOrder = 2 // Start at 2 (after the starting stop)
+      for (const suggestedStop of planData.suggested_stops) {
+        const stopData = {
+          stop_order: stopOrder,
+          name: suggestedStop.name,
+          latitude: suggestedStop.latitude,
+          longitude: suggestedStop.longitude,
+          city: suggestedStop.city,
+          state: suggestedStop.state,
+          is_overnight: true,
+          needs_user_selection: true,
+          search_radius_miles: suggestedStop.search_radius_miles || 30
+        }
+
+        await fetch(`/api/trips/${id}/stops`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${safeStorage.getItem('token')}`
+          },
+          body: JSON.stringify(stopData)
+        })
+        stopOrder++
+      }
+
+      // Update end stop order
+      await fetch(`/api/trips/${id}/stops/${endStop.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${safeStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ ...endStop, stop_order: stopOrder })
+      })
+
+      // Update trip distance
+      await fetch(`/api/trips/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${safeStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          total_distance_miles: planData.total_distance_miles,
+          estimated_days: planData.estimated_days
+        })
+      })
+
+      // Reload the trip
+      await loadTrip(parseInt(id))
+    } catch (error) {
+      console.error('Failed to recalculate trip:', error)
+      alert('Failed to recalculate trip. Your original stops are preserved.')
+    } finally {
+      setRecalculating(false)
     }
   }
 
@@ -418,7 +544,38 @@ export default function TripDetail() {
       {/* Interactive Trip Route Map with Hazards */}
       {trip.stops && trip.stops.length >= 2 && (
         <div className="card mb-4">
-          <h2>Route Map with Hazards</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h2 style={{ margin: 0 }}>Route Map with Hazards</h2>
+            <button
+              onClick={recalculateTrip}
+              disabled={recalculating}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                background: recalculating ? 'var(--bg-tertiary)' : 'linear-gradient(135deg, #3B82F6, #6366F1)',
+                color: 'white',
+                cursor: recalculating ? 'not-allowed' : 'pointer',
+                fontSize: '13px',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: recalculating ? 'none' : '0 2px 8px rgba(99, 102, 241, 0.3)'
+              }}
+            >
+              {recalculating ? (
+                <>
+                  <span style={{ animation: 'spin 1s linear infinite' }}>⟳</span>
+                  Recalculating...
+                </>
+              ) : (
+                <>
+                  🔄 Recalculate Route
+                </>
+              )}
+            </button>
+          </div>
           <RouteMapWithHazards
             tripId={parseInt(id!)}
             stops={trip.stops}

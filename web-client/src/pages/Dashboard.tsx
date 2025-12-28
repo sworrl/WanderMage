@@ -246,7 +246,8 @@ export default function Dashboard() {
   const [fuelPrices, setFuelPrices] = useState<any>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [currentWeather, setCurrentWeather] = useState<any>(null)
-  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherLoading, setWeatherLoading] = useState(true)  // Start true to show loading
+  const [weatherError, setWeatherError] = useState<string | null>(null)
   const [selectedWeatherAlert, setSelectedWeatherAlert] = useState<any>(null)
   const [hhStays, setHhStays] = useState<any>(null)
   const [selectedHHStay, setSelectedHHStay] = useState<any>(null)
@@ -288,36 +289,75 @@ export default function Dashboard() {
     loadHHStays()
   }, [])
 
-  const loadCurrentWeather = async () => {
-    setWeatherLoading(true)
+  // Fallback to IP-based geolocation (via backend to avoid mixed-content issues)
+  const getLocationByIP = async (): Promise<{ latitude: number; longitude: number; city?: string } | null> => {
     try {
-      // Get user's current location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords
-            try {
-              const response = await weather.updateUserLocation(latitude, longitude)
-              setCurrentWeather(response.data)
-            } catch (error) {
-              console.error('Failed to fetch weather:', error)
-            } finally {
-              setWeatherLoading(false)
-            }
-          },
-          (error) => {
-            console.error('Geolocation error:', error)
-            setWeatherLoading(false)
-          },
-          { timeout: 10000 }
-        )
-      } else {
-        setWeatherLoading(false)
+      const response = await weather.getIpLocation()
+      if (response.data.success) {
+        return {
+          latitude: response.data.latitude,
+          longitude: response.data.longitude,
+          city: response.data.city
+        }
       }
+    } catch (e) {
+      console.error('IP geolocation failed:', e)
+    }
+    return null
+  }
+
+  const fetchWeatherForLocation = async (latitude: number, longitude: number) => {
+    try {
+      const response = await weather.updateUserLocation(latitude, longitude)
+      setCurrentWeather(response.data)
+      setWeatherError(null)
     } catch (error) {
-      console.error('Failed to load weather:', error)
+      console.error('Failed to fetch weather:', error)
+      setWeatherError('Failed to fetch weather data')
+    } finally {
       setWeatherLoading(false)
     }
+  }
+
+  const loadCurrentWeather = async () => {
+    setWeatherLoading(true)
+    setWeatherError(null)
+
+    // Try IP-based location first (fast, always works)
+    try {
+      const ipLocation = await getLocationByIP()
+      if (ipLocation) {
+        console.log('Using IP-based location:', ipLocation.city)
+        await fetchWeatherForLocation(ipLocation.latitude, ipLocation.longitude)
+        return
+      }
+    } catch (e) {
+      console.warn('IP geolocation failed:', e)
+    }
+
+    // Fallback to browser geolocation (may prompt for permission)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords
+          await fetchWeatherForLocation(latitude, longitude)
+        },
+        async (error) => {
+          console.warn('Browser geolocation also failed:', error.message)
+          setWeatherError('Could not determine location. Click to try again.')
+          setWeatherLoading(false)
+        },
+        { timeout: 5000, enableHighAccuracy: false }
+      )
+    } else {
+      setWeatherError('Could not determine location')
+      setWeatherLoading(false)
+    }
+  }
+
+  const requestLocationPermission = () => {
+    setWeatherError(null)
+    loadCurrentWeather()
   }
 
   const loadSubcategoryStats = async () => {
@@ -879,16 +919,41 @@ export default function Dashboard() {
       )}
 
       {/* Current Location Weather */}
-      {(currentWeather || weatherLoading) && (
-        <div className="card mb-4">
-          <h2>Current Weather</h2>
-          {weatherLoading ? (
-            <div className="stats-grid">
-              <SkeletonStatCard />
-              <SkeletonStatCard />
-              <SkeletonStatCard />
+      <div className="card mb-4">
+        <h2>Current Weather</h2>
+        {weatherLoading ? (
+          <div className="stats-grid">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+        ) : weatherError ? (
+          <div style={{
+            padding: '20px',
+            textAlign: 'center',
+            background: 'var(--bg-secondary)',
+            borderRadius: '8px'
+          }}>
+            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🌤️</div>
+            <div style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              {weatherError}
             </div>
-          ) : currentWeather?.forecast?.forecast?.[0] ? (
+            <button
+              onClick={requestLocationPermission}
+              style={{
+                background: 'var(--accent-primary)',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              Request Location Access
+            </button>
+          </div>
+        ) : currentWeather?.forecast?.forecast?.[0] ? (
             <>
               {/* Active Alerts - Clickable */}
               {currentWeather.forecast.alerts && currentWeather.forecast.alerts.length > 0 && (
@@ -1117,11 +1182,10 @@ export default function Dashboard() {
             </>
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-              Unable to load weather. Please allow location access.
+              No weather data available.
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {/* Weather Alert Detail Modal */}
       {selectedWeatherAlert && (
@@ -1685,11 +1749,19 @@ export default function Dashboard() {
                           {(item.height_feet ?? 0).toFixed(1)} ft
                         </strong>
                       </div>
-                      {(item.city || item.state) && (
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                          {[item.city, item.state].filter(Boolean).join(', ')}
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                        {item.restriction_type && <span style={{ textTransform: 'capitalize' }}>{item.restriction_type}</span>}
+                        {item.direction && <span> • {item.direction}</span>}
+                      </div>
+                      {item.description && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', fontStyle: 'italic' }}>
+                          {item.description}
                         </div>
                       )}
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '6px', fontFamily: 'monospace' }}>
+                        {item.latitude?.toFixed(5)}, {item.longitude?.toFixed(5)}
+                        {item.source && <span style={{ marginLeft: '8px', opacity: 0.7 }}>({item.source})</span>}
+                      </div>
                       <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
                         <button
                           onClick={() => showOnMap(item)}

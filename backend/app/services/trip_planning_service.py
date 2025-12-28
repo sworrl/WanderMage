@@ -34,14 +34,59 @@ ROUTING_CONFIG = {
     }
 }
 
+# Route preference options
+ROUTE_PREFERENCES = {
+    "fastest": {
+        "description": "Fastest route by time",
+        "ors_preference": "fastest",
+        "avoid_features": []
+    },
+    "shortest": {
+        "description": "Shortest route by distance",
+        "ors_preference": "shortest",
+        "avoid_features": []
+    },
+    "recommended": {
+        "description": "Recommended route balancing time and distance",
+        "ors_preference": "recommended",
+        "avoid_features": []
+    },
+    "scenic": {
+        "description": "Scenic route avoiding highways",
+        "ors_preference": "recommended",
+        "avoid_features": ["highways"]
+    },
+    "fuel_efficient": {
+        "description": "Fuel-efficient route avoiding highways and steep grades",
+        "ors_preference": "shortest",
+        "avoid_features": ["highways"]  # Highways have more wind resistance at higher speeds
+    },
+    "no_tolls": {
+        "description": "Route avoiding toll roads",
+        "ors_preference": "fastest",
+        "avoid_features": ["tollways"]
+    },
+    "no_highways": {
+        "description": "Route avoiding all highways",
+        "ors_preference": "fastest",
+        "avoid_features": ["highways"]
+    }
+}
+
 # Which service to use (can be changed via env var)
 ACTIVE_ROUTING_SERVICE = os.getenv("ROUTING_SERVICE", "osrm_public")
+
+
+def get_route_preferences() -> Dict[str, Any]:
+    """Return available route preference options."""
+    return {key: val["description"] for key, val in ROUTE_PREFERENCES.items()}
 
 
 async def get_route_distance(
     start: tuple[float, float],
     end: tuple[float, float],
-    service: str = None
+    service: str = None,
+    route_preference: str = "fastest"
 ) -> Dict[str, float]:
     """
     Get driving distance and duration between two points.
@@ -50,16 +95,18 @@ async def get_route_distance(
         start: (latitude, longitude) of start point
         end: (latitude, longitude) of end point
         service: Routing service to use (defaults to ACTIVE_ROUTING_SERVICE)
+        route_preference: Route preference (fastest, shortest, scenic, etc.)
 
     Returns:
         Dict with 'distance_miles' and 'duration_hours'
     """
     service = service or ACTIVE_ROUTING_SERVICE
     config = ROUTING_CONFIG.get(service, ROUTING_CONFIG["osrm_public"])
+    preference = ROUTE_PREFERENCES.get(route_preference, ROUTE_PREFERENCES["fastest"])
 
     try:
         if service == "openrouteservice":
-            return await _get_ors_route(start, end, config)
+            return await _get_ors_route(start, end, config, preference)
         else:
             return await _get_osrm_route(start, end, config)
     except Exception as e:
@@ -104,7 +151,8 @@ async def _get_osrm_route(
 async def _get_ors_route(
     start: tuple[float, float],
     end: tuple[float, float],
-    config: dict
+    config: dict,
+    preference: dict = None
 ) -> Dict[str, float]:
     """Get route from OpenRouteService (has truck/HGV profile)."""
     if not config["api_key"]:
@@ -119,6 +167,13 @@ async def _get_ors_route(
             [end[1], end[0]]
         ]
     }
+
+    # Apply route preference
+    if preference:
+        if preference.get("ors_preference"):
+            body["preference"] = preference["ors_preference"]
+        if preference.get("avoid_features"):
+            body["options"] = {"avoid_features": preference["avoid_features"]}
 
     headers = {
         "Authorization": config["api_key"],
@@ -139,7 +194,8 @@ async def _get_ors_route(
 
 async def get_route_with_waypoints(
     points: List[tuple[float, float]],
-    service: str = None
+    service: str = None,
+    route_preference: str = "fastest"
 ) -> Dict[str, Any]:
     """
     Get route through multiple waypoints.
@@ -147,19 +203,21 @@ async def get_route_with_waypoints(
     Args:
         points: List of (latitude, longitude) tuples
         service: Routing service to use
+        route_preference: Route preference (fastest, shortest, scenic, etc.)
 
     Returns:
         Dict with total distance, duration, and per-leg breakdown
     """
     service = service or ACTIVE_ROUTING_SERVICE
     config = ROUTING_CONFIG.get(service, ROUTING_CONFIG["osrm_public"])
+    preference = ROUTE_PREFERENCES.get(route_preference, ROUTE_PREFERENCES["fastest"])
 
     if len(points) < 2:
         return {"total_distance_miles": 0, "total_duration_hours": 0, "legs": []}
 
     try:
         if service == "openrouteservice":
-            return await _get_ors_route_waypoints(points, config)
+            return await _get_ors_route_waypoints(points, config, preference)
         else:
             return await _get_osrm_route_waypoints(points, config)
     except Exception as e:
@@ -170,7 +228,7 @@ async def get_route_with_waypoints(
         total_duration = 0
 
         for i in range(len(points) - 1):
-            result = await get_route_distance(points[i], points[i + 1], service)
+            result = await get_route_distance(points[i], points[i + 1], service, route_preference)
             legs.append(result)
             total_distance += result["distance_miles"]
             total_duration += result["duration_hours"]
@@ -221,7 +279,8 @@ async def _get_osrm_route_waypoints(
 
 async def _get_ors_route_waypoints(
     points: List[tuple[float, float]],
-    config: dict
+    config: dict,
+    preference: dict = None
 ) -> Dict[str, Any]:
     """Get multi-waypoint route from OpenRouteService."""
     if not config["api_key"]:
@@ -232,6 +291,13 @@ async def _get_ors_route_waypoints(
     body = {
         "coordinates": [[p[1], p[0]] for p in points]
     }
+
+    # Apply route preference
+    if preference:
+        if preference.get("ors_preference"):
+            body["preference"] = preference["ors_preference"]
+        if preference.get("avoid_features"):
+            body["options"] = {"avoid_features": preference["avoid_features"]}
 
     headers = {
         "Authorization": config["api_key"],

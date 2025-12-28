@@ -1,16 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 from contextlib import asynccontextmanager
 import os
 
 from .core.config import settings
+from .core.database import get_db
 from .api import (
     auth, users, rv_profiles, trips, pois, fuel_logs, metrics, state_visits,
     settings as settings_api, crawl_status, user_preferences, overpass_heights,
-    railroad_crossings, achievements, fuel_prices, import_stops, overpass_search,
-    pois_bbox, roles, scraping_control, weather, harvest_hosts, api_keys,
-    scraper_dashboard, serialization
+    railroad_crossings, weight_restrictions, achievements, fuel_prices, import_stops,
+    overpass_search, pois_bbox, roles, scraping_control, weather, harvest_hosts,
+    api_keys, scraper_dashboard, serialization
 )
 from .services.scheduler import start_scheduler, stop_scheduler
 
@@ -64,6 +66,7 @@ app.include_router(roles.router, prefix="/api/roles", tags=["Roles"])
 app.include_router(weather.router, prefix="/api/weather", tags=["Weather"])
 app.include_router(overpass_heights.router, prefix="/api/overpass-heights", tags=["Overpass Heights"])
 app.include_router(railroad_crossings.router, prefix="/api/railroad-crossings", tags=["Railroad Crossings"])
+app.include_router(weight_restrictions.router, prefix="/api/weight-restrictions", tags=["Weight Restrictions"])
 app.include_router(overpass_search.router, prefix="/api/overpass-search", tags=["Overpass Search"])
 app.include_router(pois_bbox.router, prefix="/api/pois-bbox", tags=["POIs BBox"])
 app.include_router(scraping_control.router, prefix="/api/scraping-control", tags=["Scraping Control"])
@@ -98,3 +101,23 @@ async def health_check():
 async def get_version():
     from .version import __version__
     return {"version": __version__}
+
+
+@app.get("/api/credentials/status")
+async def get_credentials_status(db: Session = Depends(get_db)):
+    """Get status of all configured credentials/API keys"""
+    from .models.system_setting import get_setting
+
+    # Check database for credentials (using lowercase key names)
+    eia_key = get_setting(db, 'eia_api_key') or get_setting(db, 'EIA_API_KEY')
+    ors_key = get_setting(db, 'ors_api_key') or get_setting(db, 'ORS_API_KEY')
+    hh_email = get_setting(db, 'hh_email') or get_setting(db, 'HH_EMAIL')
+    hh_password = get_setting(db, 'hh_password') or get_setting(db, 'HH_PASSWORD')
+    mapbox_token = get_setting(db, 'mapbox_token') or get_setting(db, 'MAPBOX_TOKEN')
+
+    return {
+        "eia_api_key": bool(eia_key),
+        "ors_api_key": bool(ors_key),
+        "harvest_hosts": bool(hh_email) and bool(hh_password),
+        "mapbox_token": bool(mapbox_token)
+    }

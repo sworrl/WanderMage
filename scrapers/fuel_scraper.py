@@ -6,9 +6,29 @@ Fuel Prices Scraper - Fetches fuel prices from EIA API.
 import sys
 import asyncio
 import logging
+from pathlib import Path
 
-sys.path.insert(0, '/opt/wandermage/backend')
-sys.path.insert(0, '/opt/wandermage/scrapers')
+# Dynamic path detection - works for both source and deployed environments
+def get_project_paths():
+    """Detect project paths based on current file location."""
+    scrapers_dir = Path(__file__).resolve().parent
+
+    # Check if we're in deployed location (/opt/wandermage/scrapers)
+    if scrapers_dir.parent == Path('/opt/wandermage'):
+        backend_dir = Path('/opt/wandermage/backend')
+    else:
+        # Source code location - scrapers is sibling to backend
+        backend_dir = scrapers_dir.parent / 'backend'
+
+    return str(scrapers_dir), str(backend_dir)
+
+SCRAPERS_DIR, BACKEND_DIR = get_project_paths()
+sys.path.insert(0, BACKEND_DIR)
+sys.path.insert(0, SCRAPERS_DIR)
+
+# Load environment variables BEFORE importing anything that needs them
+from dotenv import load_dotenv
+load_dotenv(f'{BACKEND_DIR}/.env')
 
 from base_runner import ScraperRunner
 from app.services.eia_fuel_service import fetch_and_store_fuel_prices
@@ -35,14 +55,17 @@ class FuelPricesScraperRunner(ScraperRunner):
             # Use existing EIA service
             result = await fetch_and_store_fuel_prices()
 
-            if result:
+            if result and result.get('success'):
+                count = result.get('stored_count', 0)
                 self.update_status(
-                    items_found=result.get('updated', 0),
-                    items_saved=result.get('updated', 0),
-                    current_detail=f"Updated {result.get('updated', 0)} prices"
+                    items_found=count,
+                    items_saved=count,
+                    current_detail=f"Updated {count} fuel prices"
                 )
-                self.mark_completed(result.get('updated', 0))
+                self.mark_completed(count)
             else:
+                error = result.get('error', 'Unknown error') if result else 'No result'
+                logger.error(f"Fuel prices fetch failed: {error}")
                 self.mark_completed(0)
 
         except Exception as e:

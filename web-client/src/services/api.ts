@@ -121,6 +121,10 @@ export const pois = {
   getOverpassHeightsStats: () => api.get('/pois/overpass-heights-stats'),
   getSubcategoryStats: () => api.get('/pois/subcategory-stats'),
   getRailroadCrossingsStats: () => api.get('/railroad-crossings/stats'),
+  // Surveillance cameras
+  getCameras: (params: { min_lat: number; max_lat: number; min_lon: number; max_lon: number; camera_type?: string; limit?: number }) =>
+    api.get('/pois/cameras', { params }),
+  getCameraStats: () => api.get('/pois/cameras/stats'),
 }
 
 // Fuel Logs
@@ -290,6 +294,9 @@ export const weather = {
     api.post('/weather/user-location', { latitude: lat, longitude: lon, location_name: locationName }),
   getUserLocationForecast: () =>
     api.get('/weather/user-location'),
+  // IP-based geolocation (server-side to avoid mixed-content issues)
+  getIpLocation: () =>
+    api.get('/weather/ip-location'),
 }
 
 export default api

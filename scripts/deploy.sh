@@ -491,6 +491,24 @@ TimeoutStartSec=300
 RemainAfterExit=no
 EOF
 
+# Create Harvest Hosts scraper service
+cat > /etc/systemd/system/wandermage-scraper-hh.service <<EOF
+[Unit]
+Description=WanderMage Harvest Hosts Scraper
+After=network.target postgresql.service
+
+[Service]
+Type=oneshot
+User=$USER
+Group=$USER
+WorkingDirectory=$APP_DIR/scrapers
+EnvironmentFile=$BACKEND_DIR/.env
+Environment="PATH=$BACKEND_DIR/venv/bin:/usr/bin:/bin"
+ExecStart=$BACKEND_DIR/venv/bin/python3 $APP_DIR/scrapers/hh_scraper.py
+TimeoutStartSec=7200
+RemainAfterExit=no
+EOF
+
 # Create maintenance service and timer
 cat > /etc/systemd/system/wandermage-maintenance.service <<EOF
 [Unit]
@@ -523,6 +541,26 @@ WantedBy=timers.target
 EOF
 
 echo "  Scraper services created"
+
+# Configure sudoers for scraper service management
+echo "  Configuring sudoers for scraper services..."
+cat > /etc/sudoers.d/wandermage-scrapers <<EOF
+# Allow WanderMage user to manage scraper services without password
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start wandermage-scraper-poi
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop wandermage-scraper-poi
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start wandermage-scraper-fuel
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop wandermage-scraper-fuel
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start wandermage-scraper-hh
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop wandermage-scraper-hh
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start wandermage-scraper-master
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop wandermage-scraper-master
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active wandermage-scraper-poi
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active wandermage-scraper-fuel
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active wandermage-scraper-hh
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl is-active wandermage-scraper-master
+EOF
+chmod 0440 /etc/sudoers.d/wandermage-scrapers
+echo "  Sudoers configured"
 
 # ============================================
 # Test and reload services

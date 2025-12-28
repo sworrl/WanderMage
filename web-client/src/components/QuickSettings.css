@@ -108,3 +108,29 @@
   font-size: 0.875rem;
   font-weight: bold;
 }
+
+/* Holiday Toggle Button - next to theme button */
+.quick-setting-btn.holiday-btn.on {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+.quick-setting-btn.holiday-btn.on .setting-icon {
+  filter: saturate(1.3);
+}
+
+.quick-setting-btn.holiday-btn.off {
+  opacity: 0.6;
+}
+
+.quick-setting-btn.holiday-btn.off .setting-icon {
+  filter: grayscale(1);
+}
+
+.quick-setting-btn.holiday-btn.off:hover {
+  opacity: 1;
+}
+
+.quick-setting-btn.holiday-btn.off:hover .setting-icon {
+  filter: grayscale(0);
+}

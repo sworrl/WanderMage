@@ -16,8 +16,26 @@ import subprocess
 import time
 import logging
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
-sys.path.insert(0, '/opt/wandermage/backend')
+# Dynamic path detection - works for both source and deployed environments
+def get_project_paths():
+    """Detect project paths based on current file location."""
+    scrapers_dir = Path(__file__).resolve().parent
+
+    # Check if we're in deployed location (/opt/wandermage/scrapers)
+    if scrapers_dir.parent == Path('/opt/wandermage'):
+        backend_dir = Path('/opt/wandermage/backend')
+        is_deployed = True
+    else:
+        # Source code location - scrapers is sibling to backend
+        backend_dir = scrapers_dir.parent / 'backend'
+        is_deployed = False
+
+    return str(scrapers_dir), str(backend_dir), is_deployed
+
+SCRAPERS_DIR, BACKEND_DIR, IS_DEPLOYED = get_project_paths()
+sys.path.insert(0, BACKEND_DIR)
 
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal

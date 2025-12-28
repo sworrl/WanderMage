@@ -77,74 +77,83 @@ def search_overpass_heights_by_bbox(
     Parking garages are included by default but shown with a different category.
     Set include_parking=false to hide parking garage heights.
     """
+    try:
+        # Base query from overpass_heights table (populated by heights_crawler.py)
+        query = db.query(OverpassHeightModel).filter(
+            OverpassHeightModel.latitude >= south,
+            OverpassHeightModel.latitude <= north,
+            OverpassHeightModel.longitude >= west,
+            OverpassHeightModel.longitude <= east
+        )
 
-    # Base query from overpass_heights table (populated by heights_crawler.py)
-    query = db.query(OverpassHeightModel).filter(
-        OverpassHeightModel.latitude >= south,
-        OverpassHeightModel.latitude <= north,
-        OverpassHeightModel.longitude >= west,
-        OverpassHeightModel.longitude <= east
-    )
-
-    # Heuristic filters for data quality
-    if not include_unverified:
-        # Filter 1: Require at least name OR road_name
-        query = query.filter(
-            or_(
-                and_(OverpassHeightModel.name.isnot(None), OverpassHeightModel.name != ''),
-                and_(OverpassHeightModel.road_name.isnot(None), OverpassHeightModel.road_name != '')
+        # Heuristic filters for data quality
+        if not include_unverified:
+            # Filter 1: Require at least name OR road_name
+            query = query.filter(
+                or_(
+                    and_(OverpassHeightModel.name.isnot(None), OverpassHeightModel.name != ''),
+                    and_(OverpassHeightModel.road_name.isnot(None), OverpassHeightModel.road_name != '')
+                )
             )
-        )
 
-        # Filter 2: Minimum height of 6 feet (below this is likely pedestrian/bike tunnels)
-        query = query.filter(OverpassHeightModel.height_feet >= 6)
+            # Filter 2: Minimum height of 6 feet (below this is likely pedestrian/bike tunnels)
+            query = query.filter(OverpassHeightModel.height_feet >= 6)
 
-        # Filter 3: Exclude non-road features by name
-        query = query.filter(
-            ~OverpassHeightModel.name.ilike('%rockery%'),
-            ~OverpassHeightModel.name.ilike('%garden%'),
-            ~OverpassHeightModel.road_name.ilike('%rockery%'),
-            ~OverpassHeightModel.road_name.ilike('%garden%')
-        )
+            # Filter 3: Exclude non-road features by name (handle NULL values properly)
+            query = query.filter(
+                or_(OverpassHeightModel.name.is_(None), ~OverpassHeightModel.name.ilike('%rockery%')),
+                or_(OverpassHeightModel.name.is_(None), ~OverpassHeightModel.name.ilike('%garden%')),
+                or_(OverpassHeightModel.road_name.is_(None), ~OverpassHeightModel.road_name.ilike('%rockery%')),
+                or_(OverpassHeightModel.road_name.is_(None), ~OverpassHeightModel.road_name.ilike('%garden%'))
+            )
 
-    results = query.limit(limit).all()
+        results = query.limit(limit).all()
 
-    # Format response with parking garage detection
-    overpass_data = []
-    parking_count = 0
+        # Format response with parking garage detection
+        overpass_data = []
+        parking_count = 0
 
-    for height in results:
-        is_parking = is_parking_garage(height.name, height.road_name)
+        for height in results:
+            is_parking = is_parking_garage(height.name, height.road_name)
 
-        # Skip parking garages if not requested
-        if is_parking and not include_parking:
-            continue
+            # Skip parking garages if not requested
+            if is_parking and not include_parking:
+                continue
 
-        if is_parking:
-            parking_count += 1
+            if is_parking:
+                parking_count += 1
 
-        overpass_data.append({
-            "id": height.id,
-            "name": height.name or height.road_name or "Low Clearance",
-            "latitude": height.latitude,
-            "longitude": height.longitude,
-            "height_feet": height.height_feet,
-            "height_display": f"{height.height_feet:.1f} ft" if height.height_feet else None,
-            "road_name": height.road_name,
-            "description": height.description,
-            "direction": height.direction,
-            "source": height.source,
-            "verified": height.verified,
-            "is_parking_garage": is_parking,
-            "category": "parking" if is_parking else "overpass"
-        })
+            overpass_data.append({
+                "id": height.id,
+                "name": height.name or height.road_name or "Low Clearance",
+                "latitude": height.latitude,
+                "longitude": height.longitude,
+                "height_feet": height.height_feet,
+                "height_display": f"{height.height_feet:.1f} ft" if height.height_feet else None,
+                "road_name": height.road_name,
+                "description": height.description,
+                "direction": height.direction,
+                "source": height.source,
+                "verified": height.verified,
+                "is_parking_garage": is_parking,
+                "restriction_type": height.restriction_type or ('parking' if is_parking else 'bridge'),
+                "category": "parking" if is_parking else "overpass"
+            })
 
-    return {
-        "count": len(overpass_data),
-        "parking_count": parking_count,
-        "overpass_count": len(overpass_data) - parking_count,
-        "overpasses": overpass_data
-    }
+        return {
+            "count": len(overpass_data),
+            "parking_count": parking_count,
+            "overpass_count": len(overpass_data) - parking_count,
+            "overpasses": overpass_data
+        }
+    except Exception:
+        # Table doesn't exist yet - return empty result
+        return {
+            "count": 0,
+            "parking_count": 0,
+            "overpass_count": 0,
+            "overpasses": []
+        }
 
 
 @router.get("/along-route")
@@ -273,6 +282,7 @@ def get_heights_along_route(
                 "source": height.source,
                 "verified": height.verified,
                 "is_parking_garage": is_parking,
+                "restriction_type": height.restriction_type or ('parking' if is_parking else 'bridge'),
                 "category": "parking" if is_parking else "overpass",
                 "distance_from_route": round(min_dist, 2)
             })

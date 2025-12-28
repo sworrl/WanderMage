@@ -12,9 +12,25 @@ import json
 from datetime import datetime, timezone
 from typing import List, Dict, Optional
 from urllib.parse import quote_plus
+from pathlib import Path
 
-sys.path.insert(0, '/opt/wandermage/backend')
-sys.path.insert(0, '/opt/wandermage/scrapers')
+# Dynamic path detection - works for both source and deployed environments
+def get_project_paths():
+    """Detect project paths based on current file location."""
+    scrapers_dir = Path(__file__).resolve().parent
+
+    # Check if we're in deployed location (/opt/wandermage/scrapers)
+    if scrapers_dir.parent == Path('/opt/wandermage'):
+        backend_dir = Path('/opt/wandermage/backend')
+    else:
+        # Source code location - scrapers is sibling to backend
+        backend_dir = scrapers_dir.parent / 'backend'
+
+    return str(scrapers_dir), str(backend_dir)
+
+SCRAPERS_DIR, BACKEND_DIR = get_project_paths()
+sys.path.insert(0, BACKEND_DIR)
+sys.path.insert(0, SCRAPERS_DIR)
 
 from base_runner import ScraperRunner
 from sqlalchemy.orm import Session

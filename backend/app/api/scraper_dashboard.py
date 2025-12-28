@@ -164,11 +164,24 @@ def debug_start_scraper(
     if scraper.status == 'running':
         return {"error": f"Scraper already running"}
 
-    # Build config
-    config = {}
+    # Build config - merge with existing config, only overwrite if values provided
+    existing_config = {}
+    if scraper.config:
+        try:
+            existing_config = json_lib.loads(scraper.config) if isinstance(scraper.config, str) else scraper.config
+        except (json_lib.JSONDecodeError, TypeError):
+            existing_config = {}
+
     if request and scraper_type == 'poi_crawler':
-        config['categories'] = request.categories if request.categories else []
-        config['states'] = request.states if request.states else []
+        # Only set categories/states if explicitly provided (non-empty)
+        if request.categories:
+            existing_config['categories'] = request.categories
+        elif 'categories' in existing_config:
+            del existing_config['categories']  # Remove override, use selected_categories
+        if request.states:
+            existing_config['states'] = request.states
+        elif 'states' in existing_config:
+            del existing_config['states']  # Remove override, use selected_states
 
     # Set to running - master controller will pick it up
     scraper.status = 'running'
@@ -181,10 +194,10 @@ def debug_start_scraper(
     scraper.errors_count = 0
     scraper.last_error = None
     scraper.total_runs = (scraper.total_runs or 0) + 1
-    scraper.config = json_lib.dumps(config) if config else None
+    scraper.config = json_lib.dumps(existing_config) if existing_config else None
 
     db.commit()
-    return {"success": True, "message": f"Started {scraper_type}", "config": config}
+    return {"success": True, "message": f"Started {scraper_type}", "config": existing_config}
 
 
 @router.get("/poi-options")

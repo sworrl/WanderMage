@@ -1,6 +1,6 @@
 {
   "name": "wandermage-web",
-  "version": "34.0.0",
+  "version": "35.1.0",
   "description": "WanderMage Web Client",
   "private": true,
   "dependencies": {

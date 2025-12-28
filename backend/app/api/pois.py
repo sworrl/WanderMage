@@ -48,30 +48,39 @@ def get_cache_stats(
     """Get POI cache statistics"""
     from sqlalchemy import func
 
-    # Total POIs by category
-    category_counts = db.query(
-        POIModel.category,
-        func.count(POIModel.id).label('count')
-    ).filter(
-        POIModel.source == 'overpass'
-    ).group_by(POIModel.category).all()
+    try:
+        # Total POIs by category
+        category_counts = db.query(
+            POIModel.category,
+            func.count(POIModel.id).label('count')
+        ).filter(
+            POIModel.source == 'overpass'
+        ).group_by(POIModel.category).all()
 
-    # Most recent update time
-    latest_update = db.query(
-        func.max(POIModel.updated_at)
-    ).filter(POIModel.source == 'overpass').scalar()
+        # Most recent update time
+        latest_update = db.query(
+            func.max(POIModel.updated_at)
+        ).filter(POIModel.source == 'overpass').scalar()
 
-    # Total count
-    total_pois = db.query(func.count(POIModel.id)).filter(
-        POIModel.source == 'overpass'
-    ).scalar()
+        # Total count
+        total_pois = db.query(func.count(POIModel.id)).filter(
+            POIModel.source == 'overpass'
+        ).scalar()
 
-    return {
-        "total_pois": total_pois or 0,
-        "last_updated": latest_update.isoformat() if latest_update else None,
-        "categories": {cat: count for cat, count in category_counts} if category_counts else {},
-        "cache_status": "populated" if total_pois and total_pois > 0 else "empty"
-    }
+        return {
+            "total_pois": total_pois or 0,
+            "last_updated": latest_update.isoformat() if latest_update else None,
+            "categories": {cat: count for cat, count in category_counts} if category_counts else {},
+            "cache_status": "populated" if total_pois and total_pois > 0 else "empty"
+        }
+    except Exception:
+        # Table doesn't exist or has missing columns - return empty stats
+        return {
+            "total_pois": 0,
+            "last_updated": None,
+            "categories": {},
+            "cache_status": "empty"
+        }
 
 
 @router.get("/database-stats")
@@ -132,57 +141,166 @@ def get_overpass_heights_stats(
     current_user: UserModel = Depends(get_current_user)
 ):
     """Get overpass height restriction statistics"""
-    # Total heights
-    total = db.query(func.count(OverpassHeightModel.id)).scalar() or 0
+    try:
+        # Total heights
+        total = db.query(func.count(OverpassHeightModel.id)).scalar() or 0
 
-    # Average, min, max heights
-    avg_height = db.query(func.avg(OverpassHeightModel.height_feet)).scalar() or 0.0
-    min_height = db.query(func.min(OverpassHeightModel.height_feet)).scalar() or 0.0
-    max_height = db.query(func.max(OverpassHeightModel.height_feet)).scalar() or 0.0
+        # Average, min, max heights
+        avg_height = db.query(func.avg(OverpassHeightModel.height_feet)).scalar() or 0.0
+        min_height = db.query(func.min(OverpassHeightModel.height_feet)).scalar() or 0.0
+        max_height = db.query(func.max(OverpassHeightModel.height_feet)).scalar() or 0.0
 
-    # Height distribution by range
-    under_10 = db.query(func.count(OverpassHeightModel.id)).filter(
-        OverpassHeightModel.height_feet < 10
-    ).scalar() or 0
+        # Height distribution by range
+        under_10 = db.query(func.count(OverpassHeightModel.id)).filter(
+            OverpassHeightModel.height_feet < 10
+        ).scalar() or 0
 
-    range_10_12 = db.query(func.count(OverpassHeightModel.id)).filter(
-        OverpassHeightModel.height_feet >= 10,
-        OverpassHeightModel.height_feet < 12
-    ).scalar() or 0
+        range_10_12 = db.query(func.count(OverpassHeightModel.id)).filter(
+            OverpassHeightModel.height_feet >= 10,
+            OverpassHeightModel.height_feet < 12
+        ).scalar() or 0
 
-    range_12_14 = db.query(func.count(OverpassHeightModel.id)).filter(
-        OverpassHeightModel.height_feet >= 12,
-        OverpassHeightModel.height_feet < 14
-    ).scalar() or 0
+        range_12_14 = db.query(func.count(OverpassHeightModel.id)).filter(
+            OverpassHeightModel.height_feet >= 12,
+            OverpassHeightModel.height_feet < 14
+        ).scalar() or 0
 
-    over_14 = db.query(func.count(OverpassHeightModel.id)).filter(
-        OverpassHeightModel.height_feet >= 14
-    ).scalar() or 0
+        over_14 = db.query(func.count(OverpassHeightModel.id)).filter(
+            OverpassHeightModel.height_feet >= 14
+        ).scalar() or 0
 
-    # Lowest clearances
-    lowest = db.query(OverpassHeightModel).order_by(
-        OverpassHeightModel.height_feet.asc()
-    ).limit(10).all()
+        # Lowest clearances - ONLY road overpasses/bridges with names, exclude everything else
+        lowest = db.query(OverpassHeightModel).filter(
+            OverpassHeightModel.height_feet > 0,
+            # ONLY bridges/tunnels - no NULL, no parking
+            or_(
+                OverpassHeightModel.restriction_type == 'bridge',
+                OverpassHeightModel.restriction_type == 'tunnel'
+            ),
+            # MUST have a name (unnamed entries are often gas station canopies)
+            OverpassHeightModel.name.isnot(None),
+            OverpassHeightModel.name != '',
+            # Exclude non-road locations (commercial, indoor, etc.)
+            ~OverpassHeightModel.name.ilike('%parking%'),
+            ~OverpassHeightModel.name.ilike('%garage%'),
+            ~OverpassHeightModel.name.ilike('%deck%'),
+            ~OverpassHeightModel.name.ilike('%structure%'),
+            ~OverpassHeightModel.name.ilike('%ramp%'),
+            ~OverpassHeightModel.name.ilike('%entrance%'),
+            ~OverpassHeightModel.name.ilike('%exit%'),
+            ~OverpassHeightModel.name.ilike('%dentist%'),
+            ~OverpassHeightModel.name.ilike('%office%'),
+            ~OverpassHeightModel.name.ilike('%building%'),
+            ~OverpassHeightModel.name.ilike('%mall%'),
+            ~OverpassHeightModel.name.ilike('%center%'),
+            ~OverpassHeightModel.name.ilike('%indoor%'),
+            ~OverpassHeightModel.name.ilike('%car wash%'),
+            ~OverpassHeightModel.name.ilike('%carwash%'),
+            ~OverpassHeightModel.name.ilike('%wash%'),
+            ~OverpassHeightModel.name.ilike('%drive thru%'),
+            ~OverpassHeightModel.name.ilike('%drive-thru%'),
+            ~OverpassHeightModel.name.ilike('%drive through%'),
+            # Gas stations / fuel canopies
+            ~OverpassHeightModel.name.ilike('%gas station%'),
+            ~OverpassHeightModel.name.ilike('%fuel%'),
+            ~OverpassHeightModel.name.ilike('%petro%'),
+            ~OverpassHeightModel.name.ilike('%shell%'),
+            ~OverpassHeightModel.name.ilike('%exxon%'),
+            ~OverpassHeightModel.name.ilike('%mobil%'),
+            ~OverpassHeightModel.name.ilike('%chevron%'),
+            ~OverpassHeightModel.name.ilike('%bp %'),
+            ~OverpassHeightModel.name.ilike('%texaco%'),
+            ~OverpassHeightModel.name.ilike('%citgo%'),
+            ~OverpassHeightModel.name.ilike('%sunoco%'),
+            ~OverpassHeightModel.name.ilike('%marathon%'),
+            ~OverpassHeightModel.name.ilike('%speedway%'),
+            ~OverpassHeightModel.name.ilike('%pilot%'),
+            ~OverpassHeightModel.name.ilike('%flying j%'),
+            ~OverpassHeightModel.name.ilike('%loves%'),
+            ~OverpassHeightModel.name.ilike("%love's%"),
+            ~OverpassHeightModel.name.ilike('%ta %'),
+            ~OverpassHeightModel.name.ilike('%truck stop%'),
+            ~OverpassHeightModel.name.ilike('%travel center%'),
+            ~OverpassHeightModel.name.ilike('%canopy%'),
+            ~OverpassHeightModel.name.ilike('%kwik%'),
+            ~OverpassHeightModel.name.ilike('%quik%'),
+            ~OverpassHeightModel.name.ilike('%circle k%'),
+            ~OverpassHeightModel.name.ilike('%7-eleven%'),
+            ~OverpassHeightModel.name.ilike('%seven eleven%'),
+            ~OverpassHeightModel.name.ilike('%wawa%'),
+            ~OverpassHeightModel.name.ilike('%sheetz%'),
+            ~OverpassHeightModel.name.ilike('%racetrac%'),
+            ~OverpassHeightModel.name.ilike('%qt %'),
+            ~OverpassHeightModel.name.ilike('%quiktrip%'),
+            ~OverpassHeightModel.name.ilike('%casey%'),
+            ~OverpassHeightModel.name.ilike('%kum & go%'),
+            ~OverpassHeightModel.name.ilike('%convenience%'),
+            # Exclude non-road road names too
+            ~OverpassHeightModel.road_name.ilike('%parking%'),
+            ~OverpassHeightModel.road_name.ilike('%garage%'),
+            ~OverpassHeightModel.road_name.ilike('%car wash%'),
+            ~OverpassHeightModel.road_name.ilike('%carwash%'),
+        ).order_by(
+            OverpassHeightModel.height_feet.asc()
+        ).limit(20).all()  # Get 20, filter to 10 after additional checks
 
-    return {
-        "total_heights": total,
-        "average_height": float(avg_height),
-        "min_height": float(min_height),
-        "max_height": float(max_height),
-        "by_height_range": [
-            {"range": "Under 10 ft", "count": under_10},
-            {"range": "10-12 ft", "count": range_10_12},
-            {"range": "12-14 ft", "count": range_12_14},
-            {"range": "Over 14 ft", "count": over_14}
-        ],
-        "lowest_clearances": [
-            {
-                "name": h.name or h.road_name or "Unknown",
-                "height": float(h.height_feet),
-                "location": f"{h.latitude}, {h.longitude}" if h.latitude and h.longitude else "Unknown"
-            } for h in lowest
-        ]
-    }
+        # Additional filtering for lowest clearances
+        filtered_lowest = []
+        for h in lowest:
+            # Skip if looks like indoor/parking/commercial/gas station
+            combined = f"{h.name or ''} {h.road_name or ''} {h.description or ''}".lower()
+            if any(word in combined for word in [
+                'parking', 'garage', 'deck', 'lot', 'indoor', 'office', 'building', 'mall',
+                'dentist', 'medical', 'hospital entrance', 'car wash', 'carwash', 'wash',
+                'drive thru', 'drive-thru', 'drive through',
+                'gas station', 'fuel', 'petro', 'shell', 'exxon', 'mobil', 'chevron', 'bp ',
+                'texaco', 'citgo', 'sunoco', 'marathon', 'speedway', 'pilot', 'flying j',
+                'loves', "love's", 'truck stop', 'travel center', 'canopy', 'kwik', 'quik',
+                'circle k', '7-eleven', 'wawa', 'sheetz', 'racetrac', 'quiktrip', 'casey',
+                'kum & go', 'convenience', 'ampm', 'am/pm'
+            ]):
+                continue
+            filtered_lowest.append(h)
+            if len(filtered_lowest) >= 10:
+                break
+
+        return {
+            "total_heights": total,
+            "average_height": float(avg_height),
+            "min_height": float(min_height),
+            "max_height": float(max_height),
+            "by_height_range": [
+                {"range": "Under 10 ft", "count": under_10},
+                {"range": "10-12 ft", "count": range_10_12},
+                {"range": "12-14 ft", "count": range_12_14},
+                {"range": "Over 14 ft", "count": over_14}
+            ],
+            "lowest_clearances": [
+                {
+                    "name": h.name,
+                    "road_name": h.road_name,
+                    "height_feet": float(h.height_feet) if h.height_feet else 0.0,
+                    "latitude": h.latitude,
+                    "longitude": h.longitude,
+                    "restriction_type": h.restriction_type or 'bridge'
+                } for h in filtered_lowest
+            ]
+        }
+    except Exception:
+        # Table doesn't exist yet - return empty stats
+        return {
+            "total_heights": 0,
+            "average_height": 0.0,
+            "min_height": 0.0,
+            "max_height": 0.0,
+            "by_height_range": [
+                {"range": "Under 10 ft", "count": 0},
+                {"range": "10-12 ft", "count": 0},
+                {"range": "12-14 ft", "count": 0},
+                {"range": "Over 14 ft", "count": 0}
+            ],
+            "lowest_clearances": []
+        }
 
 
 @router.get("/heights-by-state")

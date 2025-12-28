@@ -12,7 +12,7 @@ from ..models.trip import Trip as TripModel, TripStop as TripStopModel, RouteNot
 from ..models.user import User as UserModel
 from ..schemas.trip import Trip, TripCreate, TripUpdate, TripStop, TripStopCreate, RouteNote, RouteNoteCreate
 from .auth import get_current_user
-from ..services.trip_planning_service import plan_trip_route, get_route_geometry_sync, get_layered_isochrones, get_route_distance
+from ..services.trip_planning_service import plan_trip_route, get_route_geometry_sync, get_layered_isochrones, get_route_distance, get_route_preferences
 import asyncio
 from ..services.trip_map_service import generate_trip_map, delete_trip_map
 from ..services.stop_categorizer import detect_category, get_category_icon, get_category_color
@@ -34,6 +34,15 @@ def get_stop_categories():
             'color': get_category_color(cat)
         }
         for cat in categories
+    }
+
+
+@router.get("/route-preferences")
+def get_available_route_preferences():
+    """Get all available route preference options for trip planning"""
+    return {
+        "preferences": get_route_preferences(),
+        "default": "fastest"
     }
 
 
@@ -70,6 +79,7 @@ class TripPlanRequest(BaseModel):
     daily_miles_target: int = 300
     max_driving_hours: float = 8.0
     rv_profile_id: Optional[int] = None
+    route_preference: str = "fastest"  # fastest, shortest, scenic, fuel_efficient, no_tolls, no_highways
 
 
 class SuggestedStop(BaseModel):

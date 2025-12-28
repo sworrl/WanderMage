@@ -284,3 +284,244 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ========== VERBOSE CRAWLER DISPLAY ========== */
+.crawler-list-verbose {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.crawler-card-verbose {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.2s;
+}
+
+.crawler-card-verbose:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Header */
+.crawler-header-verbose {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.crawler-title-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.status-icon-large {
+  font-size: 32px;
+}
+
+.crawler-title-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 22px;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.crawler-region {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.crawler-region strong {
+  color: var(--accent-primary);
+}
+
+.crawler-status-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.status-badge-large {
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.live-indicator-verbose {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4caf50;
+  font-weight: 700;
+}
+
+.pulse-verbose {
+  width: 8px;
+  height: 8px;
+  background-color: #4caf50;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+/* Progress Section */
+.progress-section-verbose {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.progress-percent {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.progress-bar-verbose {
+  width: 100%;
+  height: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.progress-fill-verbose {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 6px;
+}
+
+.progress-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+
+/* Stats Grid */
+.stats-grid-verbose {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-box-verbose {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.stat-label-verbose {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.stat-value-verbose {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-rate {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+
+/* Time Info */
+.time-info-verbose {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+
+/* Error Display */
+.error-display-verbose {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #f44336;
+}
+
+/* Notes Display */
+.notes-display-verbose {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #ff9800;
+}
+
+/* Responsive for verbose */
+@media (max-width: 1200px) {
+  .stats-grid-verbose {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid-verbose {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .time-info-verbose {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .crawler-header-verbose {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .crawler-status-section {
+    flex-direction: row;
+    align-items: center;
+  }
+}

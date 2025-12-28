@@ -9,6 +9,655 @@ import 'react-leaflet-cluster/lib/assets/MarkerCluster.css'
 import 'react-leaflet-cluster/lib/assets/MarkerCluster.Default.css'
 import L from 'leaflet'
 
+const HolidayEffects = () => {
+  const [effects, setEffects] = useState<HolidayEffect>(null)
+
+  useEffect(() => {
+    const now = new Date()
+    const month = now.getMonth() // 0-indexed
+    const day = now.getDate()
+    const dayOfWeek = now.getDay() // 0 = Sunday
+
+    // Helper: Get nth weekday of month
+    const getNthWeekday = (year: number, month: number, weekday: number, n: number): number => {
+      const firstDay = new Date(year, month, 1)
+      let count = 0
+      for (let d = 1; d <= 31; d++) {
+        const date = new Date(year, month, d)
+        if (date.getMonth() !== month) break
+        if (date.getDay() === weekday) {
+          count++
+          if (count === n) return d
+        }
+      }
+      return 0
+    }
+
+    // Helper: Get last weekday of month
+    const getLastWeekday = (year: number, month: number, weekday: number): number => {
+      const lastDay = new Date(year, month + 1, 0).getDate()
+      for (let d = lastDay; d >= 1; d--) {
+        const date = new Date(year, month, d)
+        if (date.getDay() === weekday) return d
+      }
+      return 0
+    }
+
+    const year = now.getFullYear()
+
+    // New Year's Day: Jan 1-2
+    if (month === 0 && day <= 2) {
+      setEffects('fireworks')
+    }
+    // MLK Day: 3rd Monday of January (week before and day of)
+    else if (month === 0) {
+      const mlkDay = getNthWeekday(year, 0, 1, 3) // 3rd Monday
+      if (day >= mlkDay - 3 && day <= mlkDay) setEffects('flags')
+    }
+    // Valentine's Day: Feb 12-14
+    else if (month === 1 && day >= 12 && day <= 14) {
+      setEffects('hearts')
+    }
+    // Presidents' Day: 3rd Monday of February
+    else if (month === 1) {
+      const presDay = getNthWeekday(year, 1, 1, 3)
+      if (day >= presDay - 2 && day <= presDay) setEffects('flags')
+    }
+    // St. Patrick's Day: March 15-17
+    else if (month === 2 && day >= 15 && day <= 17) {
+      setEffects('shamrocks')
+    }
+    // Easter: Variable (simplified - late March/April)
+    else if ((month === 2 && day >= 28) || (month === 3 && day <= 25)) {
+      // Simple Easter check - typically falls between March 22 and April 25
+      const easter = getEasterDate(year)
+      if (Math.abs(now.getTime() - easter.getTime()) < 3 * 24 * 60 * 60 * 1000) {
+        setEffects('eggs')
+      }
+    }
+    // Memorial Day: Last Monday of May (week before and day of)
+    else if (month === 4) {
+      const memDay = getLastWeekday(year, 4, 1)
+      if (day >= memDay - 3 && day <= memDay) setEffects('flags')
+    }
+    // Independence Day: July 1-4
+    else if (month === 6 && day >= 1 && day <= 4) {
+      setEffects('fireworks-usa')
+    }
+    // Labor Day: 1st Monday of September
+    else if (month === 8) {
+      const laborDay = getNthWeekday(year, 8, 1, 1)
+      if (day >= laborDay - 2 && day <= laborDay) setEffects('flags')
+    }
+    // Halloween: Oct 28-31
+    else if (month === 9 && day >= 28 && day <= 31) {
+      setEffects('spooky')
+    }
+    // Veterans Day: Nov 10-11
+    else if (month === 10 && day >= 10 && day <= 11) {
+      setEffects('flags')
+    }
+    // Thanksgiving: 4th Thursday of November (and day after)
+    else if (month === 10) {
+      const thanksgiving = getNthWeekday(year, 10, 4, 4)
+      if (day >= thanksgiving - 1 && day <= thanksgiving + 1) setEffects('leaves')
+    }
+    // Christmas season: Dec 20 - Dec 30
+    else if (month === 11 && day >= 20 && day <= 30) {
+      setEffects('snow')
+    }
+    // New Year's Eve: Dec 31
+    else if (month === 11 && day === 31) {
+      setEffects('fireworks')
+    }
+    else {
+      setEffects(null)
+    }
+  }, [])
+
+  // Calculate Easter date (Anonymous Gregorian algorithm)
+  const getEasterDate = (year: number): Date => {
+    const a = year % 19
+    const b = Math.floor(year / 100)
+    const c = year % 100
+    const d = Math.floor(b / 4)
+    const e = b % 4
+    const f = Math.floor((b + 8) / 25)
+    const g = Math.floor((b - f + 1) / 3)
+    const h = (19 * a + b - d - g + 15) % 30
+    const i = Math.floor(c / 4)
+    const k = c % 4
+    const l = (32 + 2 * e + 2 * i - h - k) % 7
+    const m = Math.floor((a + 11 * h + 22 * l) / 451)
+    const month = Math.floor((h + l - 7 * m + 114) / 31) - 1
+    const day = ((h + l - 7 * m + 114) % 31) + 1
+    return new Date(year, month, day)
+  }
+
+  if (!effects) return null
+
+  // Snow effect for Christmas
+  if (effects === 'snow') {
+    const snowflakes = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 10,
+      duration: 8 + Math.random() * 7,
+      size: 4 + Math.random() * 8,
+      opacity: 0.3 + Math.random() * 0.5
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes snowfall {
+            0% { transform: translateY(-10vh) rotate(0deg); }
+            100% { transform: translateY(110vh) rotate(360deg); }
+          }
+          @keyframes sway {
+            0%, 100% { margin-left: 0; }
+            50% { margin-left: 20px; }
+          }
+        `}</style>
+        {snowflakes.map(flake => (
+          <div
+            key={flake.id}
+            style={{
+              position: 'absolute',
+              left: `${flake.left}%`,
+              top: '-20px',
+              width: `${flake.size}px`,
+              height: `${flake.size}px`,
+              background: 'white',
+              borderRadius: '50%',
+              opacity: flake.opacity,
+              animation: `snowfall ${flake.duration}s linear ${flake.delay}s infinite, sway ${3 + Math.random() * 2}s ease-in-out infinite`,
+              boxShadow: '0 0 5px rgba(255,255,255,0.5)'
+            }}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  // Fireworks effect for New Year's
+  if (effects === 'fireworks') {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes firework-launch {
+            0% { transform: translateY(100vh) scale(1); opacity: 1; }
+            50% { transform: translateY(30vh) scale(1); opacity: 1; }
+            51% { transform: translateY(30vh) scale(0); opacity: 0; }
+            100% { transform: translateY(30vh) scale(0); opacity: 0; }
+          }
+          @keyframes firework-burst {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(0); opacity: 0; }
+            55% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+          }
+          @keyframes sparkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+          }
+        `}</style>
+        {Array.from({ length: 5 }, (_, i) => {
+          const colors = ['#ff0000', '#00ff00', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4']
+          const color = colors[Math.floor(Math.random() * colors.length)]
+          const left = 10 + Math.random() * 80
+          const delay = i * 2 + Math.random() * 3
+
+          return (
+            <div key={i} style={{ position: 'absolute', left: `${left}%`, bottom: 0 }}>
+              {/* Launch trail */}
+              <div style={{
+                width: '4px',
+                height: '20px',
+                background: `linear-gradient(to top, ${color}, transparent)`,
+                animation: `firework-launch ${4}s ease-out ${delay}s infinite`,
+                borderRadius: '2px'
+              }} />
+              {/* Burst */}
+              <div style={{
+                position: 'absolute',
+                top: '30vh',
+                left: '-40px',
+                width: '80px',
+                height: '80px',
+                animation: `firework-burst ${4}s ease-out ${delay}s infinite`
+              }}>
+                {Array.from({ length: 12 }, (_, j) => (
+                  <div key={j} style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '3px',
+                    height: '15px',
+                    background: color,
+                    borderRadius: '2px',
+                    transformOrigin: 'center bottom',
+                    transform: `rotate(${j * 30}deg) translateY(-20px)`,
+                    boxShadow: `0 0 6px ${color}`
+                  }} />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        {/* Random sparkles */}
+        {Array.from({ length: 20 }, (_, i) => (
+          <div key={`sparkle-${i}`} style={{
+            position: 'absolute',
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 60}%`,
+            width: '4px',
+            height: '4px',
+            background: '#fff',
+            borderRadius: '50%',
+            animation: `sparkle ${1 + Math.random()}s ease-in-out ${Math.random() * 5}s infinite`,
+            boxShadow: '0 0 4px #fff'
+          }} />
+        ))}
+      </div>
+    )
+  }
+
+  // Hearts effect for Valentine's Day
+  if (effects === 'hearts') {
+    const hearts = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 10,
+      duration: 10 + Math.random() * 5,
+      size: 10 + Math.random() * 15,
+      opacity: 0.3 + Math.random() * 0.4
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes float-up {
+            0% { transform: translateY(110vh) scale(1); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
+          }
+        `}</style>
+        {hearts.map(heart => (
+          <div
+            key={heart.id}
+            style={{
+              position: 'absolute',
+              left: `${heart.left}%`,
+              fontSize: `${heart.size}px`,
+              opacity: heart.opacity,
+              animation: `float-up ${heart.duration}s ease-in-out ${heart.delay}s infinite`,
+              color: `hsl(${340 + Math.random() * 20}, 80%, 60%)`
+            }}
+          >
+            ❤️
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Shamrocks effect for St. Patrick's Day
+  if (effects === 'shamrocks') {
+    const shamrocks = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 8,
+      duration: 8 + Math.random() * 6,
+      size: 12 + Math.random() * 18,
+      opacity: 0.4 + Math.random() * 0.4
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes shamrock-fall {
+            0% { transform: translateY(-10vh) rotate(0deg); }
+            100% { transform: translateY(110vh) rotate(360deg); }
+          }
+        `}</style>
+        {shamrocks.map(s => (
+          <div
+            key={s.id}
+            style={{
+              position: 'absolute',
+              left: `${s.left}%`,
+              top: '-20px',
+              fontSize: `${s.size}px`,
+              opacity: s.opacity,
+              animation: `shamrock-fall ${s.duration}s linear ${s.delay}s infinite`
+            }}
+          >
+            ☘️
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Easter eggs effect
+  if (effects === 'eggs') {
+    const eggs = ['🥚', '🐣', '🐰', '🌷', '🥕']
+    const items = Array.from({ length: 25 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 12,
+      duration: 12 + Math.random() * 6,
+      size: 14 + Math.random() * 14,
+      opacity: 0.5 + Math.random() * 0.4,
+      emoji: eggs[Math.floor(Math.random() * eggs.length)]
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes egg-bounce {
+            0% { transform: translateY(-10vh); }
+            50% { transform: translateY(50vh); }
+            100% { transform: translateY(110vh); }
+          }
+        `}</style>
+        {items.map(item => (
+          <div
+            key={item.id}
+            style={{
+              position: 'absolute',
+              left: `${item.left}%`,
+              top: '-20px',
+              fontSize: `${item.size}px`,
+              opacity: item.opacity,
+              animation: `egg-bounce ${item.duration}s ease-in-out ${item.delay}s infinite`
+            }}
+          >
+            {item.emoji}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // American flags/stars effect for patriotic holidays
+  if (effects === 'flags') {
+    const items = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 10,
+      duration: 15 + Math.random() * 8,
+      size: 16 + Math.random() * 12,
+      opacity: 0.4 + Math.random() * 0.4,
+      emoji: Math.random() > 0.5 ? '🇺🇸' : '⭐'
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes flag-wave {
+            0% { transform: translateY(-10vh) rotate(-5deg); }
+            25% { transform: translateY(30vh) rotate(5deg); }
+            50% { transform: translateY(60vh) rotate(-5deg); }
+            75% { transform: translateY(90vh) rotate(5deg); }
+            100% { transform: translateY(110vh) rotate(-5deg); }
+          }
+        `}</style>
+        {items.map(item => (
+          <div
+            key={item.id}
+            style={{
+              position: 'absolute',
+              left: `${item.left}%`,
+              top: '-30px',
+              fontSize: `${item.size}px`,
+              opacity: item.opacity,
+              animation: `flag-wave ${item.duration}s ease-in-out ${item.delay}s infinite`
+            }}
+          >
+            {item.emoji}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Red/White/Blue fireworks for July 4th
+  if (effects === 'fireworks-usa') {
+    const usaColors = ['#B22234', '#FFFFFF', '#3C3B6E'] // Red, White, Blue
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes usa-launch {
+            0% { transform: translateY(100vh) scale(1); opacity: 1; }
+            50% { transform: translateY(25vh) scale(1); opacity: 1; }
+            51% { transform: translateY(25vh) scale(0); opacity: 0; }
+            100% { transform: translateY(25vh) scale(0); opacity: 0; }
+          }
+          @keyframes usa-burst {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(0); opacity: 0; }
+            55% { transform: scale(0.6); opacity: 1; }
+            100% { transform: scale(2.5); opacity: 0; }
+          }
+        `}</style>
+        {Array.from({ length: 6 }, (_, i) => {
+          const color = usaColors[i % 3]
+          const left = 10 + (i * 15) + Math.random() * 10
+          const delay = i * 1.5 + Math.random() * 2
+
+          return (
+            <div key={i} style={{ position: 'absolute', left: `${left}%`, bottom: 0 }}>
+              <div style={{
+                width: '5px',
+                height: '25px',
+                background: `linear-gradient(to top, ${color}, transparent)`,
+                animation: `usa-launch 3.5s ease-out ${delay}s infinite`,
+                borderRadius: '2px'
+              }} />
+              <div style={{
+                position: 'absolute',
+                top: '25vh',
+                left: '-50px',
+                width: '100px',
+                height: '100px',
+                animation: `usa-burst 3.5s ease-out ${delay}s infinite`
+              }}>
+                {Array.from({ length: 16 }, (_, j) => (
+                  <div key={j} style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    width: '4px',
+                    height: '20px',
+                    background: color,
+                    borderRadius: '2px',
+                    transformOrigin: 'center bottom',
+                    transform: `rotate(${j * 22.5}deg) translateY(-25px)`,
+                    boxShadow: `0 0 8px ${color}`
+                  }} />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // Spooky effect for Halloween
+  if (effects === 'spooky') {
+    const spookyEmojis = ['🎃', '👻', '🦇', '🕷️', '💀', '🕸️']
+    const items = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 10,
+      duration: 10 + Math.random() * 8,
+      size: 14 + Math.random() * 20,
+      opacity: 0.4 + Math.random() * 0.5,
+      emoji: spookyEmojis[Math.floor(Math.random() * spookyEmojis.length)]
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes spooky-float {
+            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            50% { transform: translateY(50vh) translateX(30px) rotate(10deg); }
+            90% { opacity: 1; }
+            100% { transform: translateY(110vh) translateX(-30px) rotate(-10deg); opacity: 0; }
+          }
+        `}</style>
+        {items.map(item => (
+          <div
+            key={item.id}
+            style={{
+              position: 'absolute',
+              left: `${item.left}%`,
+              top: '-30px',
+              fontSize: `${item.size}px`,
+              opacity: item.opacity,
+              animation: `spooky-float ${item.duration}s ease-in-out ${item.delay}s infinite`
+            }}
+          >
+            {item.emoji}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Fall leaves effect for Thanksgiving
+  if (effects === 'leaves') {
+    const leafEmojis = ['🍂', '🍁', '🦃', '🌽', '🥧']
+    const items = Array.from({ length: 35 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 12,
+      duration: 10 + Math.random() * 8,
+      size: 14 + Math.random() * 16,
+      opacity: 0.5 + Math.random() * 0.4,
+      emoji: leafEmojis[Math.floor(Math.random() * leafEmojis.length)]
+    }))
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        overflow: 'hidden'
+      }}>
+        <style>{`
+          @keyframes leaf-fall {
+            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); }
+            25% { transform: translateY(25vh) translateX(40px) rotate(90deg); }
+            50% { transform: translateY(50vh) translateX(-20px) rotate(180deg); }
+            75% { transform: translateY(75vh) translateX(30px) rotate(270deg); }
+            100% { transform: translateY(110vh) translateX(0) rotate(360deg); }
+          }
+        `}</style>
+        {items.map(item => (
+          <div
+            key={item.id}
+            style={{
+              position: 'absolute',
+              left: `${item.left}%`,
+              top: '-30px',
+              fontSize: `${item.size}px`,
+              opacity: item.opacity,
+              animation: `leaf-fall ${item.duration}s ease-in-out ${item.delay}s infinite`
+            }}
+          >
+            {item.emoji}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return null
+}
+
 // Helper function to calculate distance between two points in miles (Haversine formula)
 function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3959 // Earth's radius in miles
@@ -273,10 +922,18 @@ const createGapSuggestionIcon = (arrivalDate?: string, weatherIcon?: string) => 
   })
 }
 
-// Height restriction icon - warning triangle with height display (or P square for parking)
-// Now accepts userRvHeight to dynamically color based on clearance safety
-// onRoute: true adds a prominent border to indicate heights you'll actually pass under
-const createHeightIcon = (heightFeet: number, isParking: boolean = false, userRvHeight: number = 12.5, onRoute: boolean = false) => {
+// Height restriction icon - distinct shapes for each type
+// - bridge: warning triangle
+// - tunnel: arch/semicircle shape
+// - parking: square with P
+// All dynamically colored based on clearance relative to user's RV height
+// onRoute: true adds a prominent cyan border to indicate heights you'll actually pass under
+const createHeightIcon = (
+  heightFeet: number,
+  restrictionType: 'bridge' | 'tunnel' | 'parking' | null = 'bridge',
+  userRvHeight: number = 12.5,
+  onRoute: boolean = false
+) => {
   // Calculate clearance - 5 inches = 5/12 = 0.417 feet
   const clearance = heightFeet - userRvHeight
   const isDangerous = clearance <= 5/12 // Within 5 inches or less
@@ -286,32 +943,6 @@ const createHeightIcon = (heightFeet: number, isParking: boolean = false, userRv
   const routeStyle = onRoute ? 'box-shadow: 0 0 0 3px #06B6D4, 0 2px 8px rgba(6, 182, 212, 0.6);' : 'box-shadow: 0 2px 5px rgba(0,0,0,0.4);'
   const routeSize = onRoute ? 1.2 : 1 // 20% larger when on route
 
-  if (isParking) {
-    // Parking garage icon - blue square with P (also shows danger for vans)
-    const parkingClass = isDangerous ? 'height-icon parking pulse-danger' : 'height-icon parking'
-    const size = Math.round(28 * routeSize)
-    return L.divIcon({
-      className: parkingClass,
-      html: `<div style="
-        background-color: ${isDangerous ? '#DC2626' : '#6366F1'};
-        width: ${size}px;
-        height: ${size}px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid white;
-        ${routeStyle}
-        font-size: ${Math.round(10 * routeSize)}px;
-        font-weight: bold;
-        color: white;
-      "><span style="font-size: ${Math.round(8 * routeSize)}px; position: absolute; top: 1px;">P</span>${heightFeet.toFixed(0)}'</div>`,
-      iconSize: [size, size],
-      iconAnchor: [size/2, size],
-    })
-  }
-
-  // Regular overpass icon - warning triangle
   // Dynamic coloring based on user's RV height
   let color: string
   let iconClass = 'height-icon'
@@ -326,11 +957,63 @@ const createHeightIcon = (heightFeet: number, isParking: boolean = false, userRv
     color = '#10B981' // Green - safe
   }
 
+  // PARKING GARAGE - Square with P prefix
+  if (restrictionType === 'parking') {
+    const size = Math.round(28 * routeSize)
+    return L.divIcon({
+      className: iconClass + ' parking',
+      html: `<div style="
+        background-color: ${color};
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        ${routeStyle}
+        font-size: ${Math.round(10 * routeSize)}px;
+        font-weight: bold;
+        color: white;
+        position: relative;
+      "><span style="font-size: ${Math.round(7 * routeSize)}px; position: absolute; top: 0px; left: 2px;">P</span>${heightFeet.toFixed(0)}'</div>`,
+      iconSize: [size, size],
+      iconAnchor: [size/2, size],
+    })
+  }
+
+  // TUNNEL - Arch/semicircle shape (rounded top)
+  if (restrictionType === 'tunnel') {
+    const width = Math.round(32 * routeSize)
+    const height = Math.round(26 * routeSize)
+    return L.divIcon({
+      className: iconClass + ' tunnel',
+      html: `<div style="
+        background-color: ${color};
+        width: ${width}px;
+        height: ${height}px;
+        border-radius: ${width/2}px ${width/2}px 4px 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid white;
+        ${routeStyle}
+        font-size: ${Math.round(9 * routeSize)}px;
+        font-weight: bold;
+        color: white;
+        position: relative;
+      "><span style="font-size: ${Math.round(6 * routeSize)}px; position: absolute; top: 1px;">T</span><span style="margin-top: 6px;">${heightFeet.toFixed(0)}'</span></div>`,
+      iconSize: [width, height],
+      iconAnchor: [width/2, height],
+    })
+  }
+
+  // BRIDGE (default) - Warning triangle shape
   const width = Math.round(32 * routeSize)
   const height = Math.round(28 * routeSize)
 
   return L.divIcon({
-    className: iconClass,
+    className: iconClass + ' bridge',
     html: `<div style="
       background-color: ${color};
       width: ${width}px;
@@ -422,22 +1105,179 @@ const createRailroadCrossingIcon = (safetyLevel: 'protected' | 'warning' | 'unpr
     })
   }
 
-  return L.divIcon({
-    className: iconClass,
-    html: `<div style="
+  // Different shapes based on safety level
+  let shapeStyle: string
+  let innerContent: string
+
+  if (safetyLevel === 'protected') {
+    // Shield/octagon shape for gated crossings (safest)
+    shapeStyle = `
       background-color: ${color};
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    `
+    innerContent = `<span style="color: white; font-size: 10px; font-weight: bold;">G</span>`
+  } else if (safetyLevel === 'warning') {
+    // Diamond shape for lights/bell only (caution)
+    shapeStyle = `
+      background-color: ${color};
+      width: 22px;
+      height: 22px;
+      transform: rotate(45deg);
       display: flex;
       align-items: center;
       justify-content: center;
       border: 2px solid white;
       box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-      font-size: 14px;
-    ">🚂</div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    `
+    innerContent = `<span style="color: white; font-size: 10px; font-weight: bold; transform: rotate(-45deg);">L</span>`
+  } else {
+    // Warning triangle for unprotected (danger)
+    shapeStyle = `
+      background-color: ${color};
+      width: 26px;
+      height: 24px;
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 4px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+    `
+    innerContent = `<span style="color: white; font-size: 12px; font-weight: bold;">!</span>`
+  }
+
+  return L.divIcon({
+    className: iconClass,
+    html: `<div style="${shapeStyle}">${innerContent}</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  })
+}
+
+// Surveillance camera icon - with view direction cone like deflock.me
+// Data sourced from DeFlock.me - https://deflock.me
+const createCameraIcon = (cameraType: string | null, direction: number | null, zoom: number = 14) => {
+  // Gray cone color like deflock.me
+  const coneColor = '#4B5563'
+  let dotColor: string
+
+  switch (cameraType) {
+    case 'flock':
+      dotColor = '#3B82F6' // Blue for Flock (like deflock.me)
+      break
+    case 'alpr':
+      dotColor = '#3B82F6' // Blue for ALPR
+      break
+    case 'traffic':
+      dotColor = '#F59E0B' // Amber for traffic
+      break
+    case 'dome':
+      dotColor = '#8B5CF6' // Purple for dome cameras
+      break
+    case 'doorbell':
+    case 'ring':
+      dotColor = '#22C55E' // Green for doorbell/Ring
+      break
+    default:
+      dotColor = '#3B82F6' // Default blue
+  }
+
+  // Check if we have valid direction data
+  const hasDirection = direction !== null && direction !== undefined
+
+  // For 360° cameras (dome) or cameras without direction, show simple dot or small circle
+  const is360 = cameraType === 'dome'
+  const showCone = hasDirection && !is360
+
+  // Scale based on zoom level
+  const baseSize = Math.max(50, Math.min(140, zoom * 7))
+  const dotSize = Math.max(12, Math.min(18, zoom * 0.9))
+
+  // For cameras without direction, use smaller icon
+  if (!showCone && !is360) {
+    const smallSize = dotSize + 8
+    return L.divIcon({
+      className: 'camera-icon',
+      html: `
+        <svg width="${smallSize}" height="${smallSize}" viewBox="0 0 ${smallSize} ${smallSize}" style="overflow: visible;">
+          <!-- Small glow ring to indicate unknown direction -->
+          <circle cx="${smallSize / 2}" cy="${smallSize / 2}" r="${dotSize / 2 + 3}"
+            fill="none" stroke="${coneColor}" stroke-width="2" stroke-opacity="0.4"/>
+          <!-- Camera dot -->
+          <circle cx="${smallSize / 2}" cy="${smallSize / 2}" r="${dotSize / 2}"
+            fill="${dotColor}" stroke="white" stroke-width="2"/>
+        </svg>
+      `,
+      iconSize: [smallSize, smallSize],
+      iconAnchor: [smallSize / 2, smallSize / 2],
+    })
+  }
+
+  // SVG canvas size for cameras with direction
+  const coneLength = baseSize
+  const svgSize = coneLength + dotSize
+  const centerX = svgSize / 2
+  const centerY = svgSize / 2
+
+  // Field of view angle
+  const fov = 60 // degrees
+  const halfFov = fov / 2
+  const coneRadius = coneLength * 0.75
+
+  // Convert compass direction to SVG angle
+  // Compass: 0=North(up), 90=East(right), 180=South(down), 270=West(left)
+  // SVG with Y-down: need to convert so 0° points up
+  // Formula: svgAngle = compass - 90 (so compass 0 -> -90 which points up)
+  const actualDirection = direction || 0
+  const toRad = (deg: number) => deg * Math.PI / 180
+
+  // Calculate the two edge points of the cone (left and right edges of FOV)
+  const leftAngle = actualDirection - halfFov - 90  // Left edge of cone
+  const rightAngle = actualDirection + halfFov - 90 // Right edge of cone
+
+  const leftX = centerX + Math.cos(toRad(leftAngle)) * coneRadius
+  const leftY = centerY + Math.sin(toRad(leftAngle)) * coneRadius
+  const rightX = centerX + Math.cos(toRad(rightAngle)) * coneRadius
+  const rightY = centerY + Math.sin(toRad(rightAngle)) * coneRadius
+
+  // SVG arc flag: 0 for small arc (<180°), 1 for large arc
+  const largeArcFlag = fov > 180 ? 1 : 0
+  const sweepFlag = 1 // clockwise
+
+  // Create path with rounded arc at the far end
+  const conePath = `M ${centerX} ${centerY} L ${leftX} ${leftY} A ${coneRadius} ${coneRadius} 0 ${largeArcFlag} ${sweepFlag} ${rightX} ${rightY} Z`
+
+  return L.divIcon({
+    className: 'camera-icon',
+    html: is360 ? `
+      <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" style="overflow: visible;">
+        <!-- 360° camera - full circle -->
+        <circle cx="${centerX}" cy="${centerY}" r="${coneRadius * 0.6}"
+          fill="${coneColor}" fill-opacity="0.35"
+          stroke="${coneColor}" stroke-width="2" stroke-opacity="0.6"/>
+        <!-- Camera dot -->
+        <circle cx="${centerX}" cy="${centerY}" r="${dotSize / 2}"
+          fill="${dotColor}" stroke="white" stroke-width="2"/>
+      </svg>
+    ` : `
+      <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" style="overflow: visible;">
+        <!-- View cone with rounded arc end -->
+        <path d="${conePath}"
+          fill="${coneColor}" fill-opacity="0.5"
+          stroke="${coneColor}" stroke-width="1.5" stroke-opacity="0.7"/>
+        <!-- Camera dot with border -->
+        <circle cx="${centerX}" cy="${centerY}" r="${dotSize / 2}"
+          fill="${dotColor}" stroke="white" stroke-width="2"/>
+      </svg>
+    `,
+    iconSize: [svgSize, svgSize],
+    iconAnchor: [centerX, centerY],
   })
 }
 
@@ -1008,6 +1848,7 @@ interface HeightRestriction {
   road_name: string
   description: string
   is_parking_garage?: boolean
+  restriction_type?: 'bridge' | 'tunnel' | 'parking' | null
   category?: string
   onRoute?: boolean
 }
@@ -1027,6 +1868,132 @@ interface RailroadCrossing {
   supervised: boolean
   tracks: number
   safety_level: 'protected' | 'warning' | 'unprotected'
+}
+
+interface SurveillanceCamera {
+  id: number
+  name: string | null
+  latitude: number
+  longitude: number
+  camera_type: string | null
+  camera_mount: string | null
+  camera_direction: number | null
+  surveillance_type: string | null
+  surveillance_zone: string | null
+  operator: string | null
+  networks_shared: number
+  source: string
+}
+
+// LocateControl - button to center map on user's current location
+function LocateControl() {
+  const map = useMap()
+  const [locating, setLocating] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'denied' | 'unavailable' | 'success'>('idle')
+
+  const handleLocate = async () => {
+    if (!('geolocation' in navigator)) {
+      console.warn('Geolocation is not supported by this browser')
+      return
+    }
+
+    setLocating(true)
+    setStatus('idle')
+
+    // Check permission status first if available
+    if ('permissions' in navigator) {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' })
+        if (permission.state === 'denied') {
+          setStatus('denied')
+          setLocating(false)
+          return
+        }
+      } catch {
+        // Permissions API not fully supported, continue anyway
+      }
+    }
+
+    // Try high accuracy first, then fall back to lower accuracy
+    const tryGetPosition = (highAccuracy: boolean, timeout: number): Promise<GeolocationPosition> => {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: highAccuracy,
+          timeout,
+          maximumAge: 60000
+        })
+      })
+    }
+
+    try {
+      // First try: high accuracy with 15s timeout
+      const pos = await tryGetPosition(true, 15000).catch(() =>
+        // Second try: low accuracy with 10s timeout
+        tryGetPosition(false, 10000)
+      )
+      const { latitude, longitude } = pos.coords
+      map.setView([latitude, longitude], 14)
+      setStatus('success')
+    } catch (err) {
+      console.warn('Geolocation failed:', err)
+      setStatus('unavailable')
+    } finally {
+      setLocating(false)
+    }
+  }
+
+  const getButtonStyle = () => {
+    const base = {
+      width: '36px',
+      height: '36px',
+      border: '2px solid rgba(0,0,0,0.2)',
+      borderRadius: '4px',
+      cursor: locating ? 'wait' : 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '18px',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+      transition: 'background-color 0.3s',
+    }
+    if (status === 'denied') return { ...base, backgroundColor: '#FEE2E2' }
+    if (status === 'unavailable') return { ...base, backgroundColor: '#FEF3C7' }
+    if (status === 'success') return { ...base, backgroundColor: '#D1FAE5' }
+    return { ...base, backgroundColor: 'white' }
+  }
+
+  const getIcon = () => {
+    if (locating) return '⏳'
+    if (status === 'denied') return '🚫'
+    if (status === 'unavailable') return '❓'
+    return '📍'
+  }
+
+  const getTitle = () => {
+    if (status === 'denied') return 'Location permission denied - check browser settings'
+    if (status === 'unavailable') return 'Location unavailable - try again'
+    return 'Center on my location'
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '80px',
+        right: '10px',
+        zIndex: 1000,
+      }}
+    >
+      <button
+        onClick={handleLocate}
+        disabled={locating}
+        title={getTitle()}
+        style={getButtonStyle()}
+      >
+        {getIcon()}
+      </button>
+    </div>
+  )
 }
 
 // MapUpdater only fires when explicitly requested via a flag, not on every center change
@@ -1049,17 +2016,22 @@ function MapUpdater({ center, shouldUpdate, onUpdated }: { center: [number, numb
 
 function MapEventHandler({
   onBoundsChange,
-  onCenterChange
+  onCenterChange,
+  onZoomChange
 }: {
   onBoundsChange: (bounds: any) => void
   onCenterChange?: (center: [number, number]) => void
+  onZoomChange?: (zoom: number) => void
 }) {
   const map = useMap()
 
   useEffect(() => {
-    // Trigger initial bounds
+    // Trigger initial bounds and zoom
     const bounds = map.getBounds()
     onBoundsChange(bounds)
+    if (onZoomChange) {
+      onZoomChange(map.getZoom())
+    }
 
     // Listen for map move events
     const handleMoveEnd = () => {
@@ -1073,14 +2045,22 @@ function MapEventHandler({
       }
     }
 
+    // Listen for zoom events
+    const handleZoomEnd = () => {
+      handleMoveEnd()
+      if (onZoomChange) {
+        onZoomChange(map.getZoom())
+      }
+    }
+
     map.on('moveend', handleMoveEnd)
-    map.on('zoomend', handleMoveEnd)
+    map.on('zoomend', handleZoomEnd)
 
     return () => {
       map.off('moveend', handleMoveEnd)
-      map.off('zoomend', handleMoveEnd)
+      map.off('zoomend', handleZoomEnd)
     }
-  }, [map, onBoundsChange, onCenterChange])
+  }, [map, onBoundsChange, onCenterChange, onZoomChange])
 
   return null
 }
@@ -1130,59 +2110,74 @@ function UserLocationMarker() {
 
   useEffect(() => {
     if (!('geolocation' in navigator)) {
-      setError('Geolocation not supported')
+      // Silently fail - no need to set error, just don't show marker
       return
     }
 
-    // Get initial position
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed } = pos.coords
-        setPosition([latitude, longitude])
-        setAccuracy(accuracy)
-        setAltitude(altitude)
-        setAltitudeAccuracy(altitudeAccuracy)
-        setHeading(heading)
-        setSpeed(speed)
-        setTimestamp(pos.timestamp)
-        setError(null)
-      },
-      (err) => {
-        console.error('Geolocation error:', err)
-        setError(err.message)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    )
+    let isMounted = true
+    let watchId: number | null = null
 
-    // Watch position for updates
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed } = pos.coords
-        setPosition([latitude, longitude])
-        setAccuracy(accuracy)
-        setAltitude(altitude)
-        setAltitudeAccuracy(altitudeAccuracy)
-        setHeading(heading)
-        setSpeed(speed)
-        setTimestamp(pos.timestamp)
-        setError(null)
-      },
-      (err) => {
-        console.error('Geolocation watch error:', err)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 30000
+    // Helper to update position
+    const updatePosition = (pos: GeolocationPosition) => {
+      if (!isMounted) return
+      const { latitude, longitude, accuracy, altitude, altitudeAccuracy, heading, speed } = pos.coords
+      setPosition([latitude, longitude])
+      setAccuracy(accuracy)
+      setAltitude(altitude)
+      setAltitudeAccuracy(altitudeAccuracy)
+      setHeading(heading)
+      setSpeed(speed)
+      setTimestamp(pos.timestamp)
+      setError(null)
+    }
+
+    // Check permission first if available
+    const checkAndWatch = async () => {
+      if ('permissions' in navigator) {
+        try {
+          const permission = await navigator.permissions.query({ name: 'geolocation' })
+          if (permission.state === 'denied') {
+            // Permission denied - silently skip, user knows
+            return
+          }
+        } catch {
+          // Permissions API not supported, try anyway
+        }
       }
-    )
+
+      // Get initial position with fallback
+      navigator.geolocation.getCurrentPosition(
+        updatePosition,
+        () => {
+          // Try lower accuracy on failure
+          navigator.geolocation.getCurrentPosition(
+            updatePosition,
+            () => {
+              // Both attempts failed - silently continue, watch may succeed later
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+          )
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      )
+
+      // Watch for updates (less aggressive, longer cache time)
+      watchId = navigator.geolocation.watchPosition(
+        updatePosition,
+        () => {
+          // Watch errors are expected sometimes, no need to log
+        },
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 }
+      )
+    }
+
+    checkAndWatch()
 
     return () => {
-      navigator.geolocation.clearWatch(watchId)
+      isMounted = false
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId)
+      }
     }
   }, [map])
 
@@ -1198,7 +2193,7 @@ function UserLocationMarker() {
   }
 
   if (error) {
-    console.warn('Geolocation error:', error)
+    // Silently return null - no marker if there's an error
     return null
   }
 
@@ -1791,11 +2786,21 @@ export default function MapView() {
   const [stopRangeLoading, setStopRangeLoading] = useState(false)
   const [stopRangeCenter, setStopRangeCenter] = useState<{lat: number, lon: number, name: string} | null>(null)
 
+  // Resizable map state
+  const [mapHeight, setMapHeight] = useState(() => {
+    const saved = safeStorage.getItem('mapViewHeight')
+    return saved ? parseInt(saved) : Math.max(window.innerHeight - 180, 600)
+  })
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeStartY = useRef(0)
+  const resizeStartHeight = useRef(0)
+
   // Map settings - will be loaded from database
   const [center, setCenter] = useState<[number, number] | null>(null) // Will be set by preferences or geolocation
   const [centerInitialized, setCenterInitialized] = useState(false) // Track if center has been properly initialized
   const [shouldUpdateMap, setShouldUpdateMap] = useState(false) // Flag to trigger programmatic map centering
   const [selectedTileLayer, setSelectedTileLayer] = useState<string>('dark') // Default tile layer
+  const [mapZoom, setMapZoom] = useState<number>(14) // Current map zoom level for scaling icons
   const [routeDistanceFilter, setRouteDistanceFilter] = useState<number>(40) // Filter POIs within X miles of route
   const [pois, setPois] = useState<POI[]>([])
   const [heights, setHeights] = useState<HeightRestriction[]>([])
@@ -1804,6 +2809,8 @@ export default function MapView() {
   const [showRailroadCrossings, setShowRailroadCrossings] = useState<boolean>(true) // Show railroad crossings
   const [railroadFilterMode, setRailroadFilterMode] = useState<'onRoute' | 'nearby' | 'viewport' | 'all'>('onRoute') // Default to only crossings we drive over
   const [railroadRadiusMiles, setRailroadRadiusMiles] = useState<number>(2) // Radius for nearby mode
+  const [surveillanceCameras, setSurveillanceCameras] = useState<SurveillanceCamera[]>([])
+  const [showCameras, setShowCameras] = useState<boolean>(true) // Show surveillance cameras by default
   const [showIsochrones, setShowIsochrones] = useState<boolean>(false) // Show drive-time isochrones around stops
   const [isochroneLayer15, setIsochroneLayer15] = useState<boolean>(true) // Show 15min layer
   const [isochroneLayer30, setIsochroneLayer30] = useState<boolean>(true) // Show 30min layer
@@ -1881,6 +2888,9 @@ export default function MapView() {
   const [heightMaxResults, setHeightMaxResults] = useState<number | null>(null) // Limit number of results (null = no limit)
   const [heightShowDangerous, setHeightShowDangerous] = useState<boolean>(true) // Show heights below RV height
   const [heightShowSafe, setHeightShowSafe] = useState<boolean>(true) // Show heights above RV height
+  const [heightShowBridges, setHeightShowBridges] = useState<boolean>(true) // Show bridge overpasses
+  const [heightShowTunnels, setHeightShowTunnels] = useState<boolean>(true) // Show tunnels
+  const [heightShowParking, setHeightShowParking] = useState<boolean>(true) // Show parking garages
   const [showDistanceCircles, setShowDistanceCircles] = useState<boolean>(false) // Show distance circles around stops
   const [selectedRvProfile, setSelectedRvProfile] = useState<any>(null)
   const navigate = useNavigate()
@@ -1974,6 +2984,15 @@ export default function MapView() {
       result = result.filter(h => h.height_feet <= userRvHeight)
     }
 
+    // Apply restriction type filters
+    result = result.filter(h => {
+      const type = h.restriction_type || 'bridge'
+      if (type === 'bridge' && !heightShowBridges) return false
+      if (type === 'tunnel' && !heightShowTunnels) return false
+      if (type === 'parking' && !heightShowParking) return false
+      return true
+    })
+
     // Apply route filter - only show heights on the route
     if (heightFilterMode === 'route') {
       if (routeCoords.length > 0) {
@@ -2010,6 +3029,7 @@ export default function MapView() {
 
     return result
   }, [heights, heightMinFilter, heightMaxFilter, heightShowDangerous, heightShowSafe,
+      heightShowBridges, heightShowTunnels, heightShowParking,
       heightFilterMode, routeCoords, heightRadiusMiles, heightMaxResults, userRvHeight])
 
   // Filter railroad crossings based on user settings
@@ -2169,6 +3189,39 @@ export default function MapView() {
     loadPreferences()
   }, [])
 
+  // Map resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsResizing(true)
+    resizeStartY.current = e.clientY
+    resizeStartHeight.current = mapHeight
+  }, [mapHeight])
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return
+    const deltaY = e.clientY - resizeStartY.current
+    const newHeight = Math.max(400, Math.min(window.innerHeight - 100, resizeStartHeight.current + deltaY))
+    setMapHeight(newHeight)
+  }, [isResizing])
+
+  const handleResizeEnd = useCallback(() => {
+    if (isResizing) {
+      setIsResizing(false)
+      safeStorage.setItem('mapViewHeight', mapHeight.toString())
+    }
+  }, [isResizing, mapHeight])
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMove)
+      window.addEventListener('mouseup', handleResizeEnd)
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMove)
+        window.removeEventListener('mouseup', handleResizeEnd)
+      }
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd])
+
   // Check for map target from Dashboard navigation
   useEffect(() => {
     const targetStr = sessionStorage.getItem('mapTarget')
@@ -2226,17 +3279,19 @@ export default function MapView() {
       } else {
         // No saved center - try to get user's location
         if ('geolocation' in navigator) {
+          // Try low accuracy first (faster, works better on desktops)
           navigator.geolocation.getCurrentPosition(
             (pos) => {
               setCenter([pos.coords.latitude, pos.coords.longitude])
               setCenterInitialized(true)
             },
-            () => {
-              // Geolocation failed - fall back to USA center
+            (err) => {
+              // Geolocation failed - fall back to USA center silently
+              console.debug('Geolocation unavailable, using default center:', err.message)
               setCenter([39.8283, -98.5795])
               setCenterInitialized(true)
             },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
           )
         } else {
           // No geolocation support - fall back to USA center
@@ -2330,7 +3385,7 @@ export default function MapView() {
             setCenter([39.8283, -98.5795])
             setCenterInitialized(true)
           },
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
         )
       } else {
         setCenter([39.8283, -98.5795])
@@ -2529,6 +3584,16 @@ export default function MapView() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapBounds, showRailroadCrossings, railroadFilterMode, routeCoords.length])
+
+  // Fetch surveillance cameras when enabled and map bounds change
+  useEffect(() => {
+    if (showCameras && mapBounds) {
+      searchSurveillanceCameras()
+    } else if (!showCameras) {
+      setSurveillanceCameras([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapBounds, showCameras])
 
   const loadTrips = async () => {
     try {
@@ -2799,6 +3864,44 @@ export default function MapView() {
     }
   }
 
+  // Search for surveillance cameras in current viewport
+  const searchSurveillanceCameras = async () => {
+    if (!mapBounds) return
+
+    try {
+      const south = mapBounds.getSouth()
+      const west = normalizeLongitude(mapBounds.getWest())
+      const north = mapBounds.getNorth()
+      const east = normalizeLongitude(mapBounds.getEast())
+
+      const params = new URLSearchParams({
+        min_lat: south.toString(),
+        max_lat: north.toString(),
+        min_lon: west.toString(),
+        max_lon: east.toString(),
+        limit: '2000'
+      })
+
+      const response = await fetch(`/api/pois/cameras?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${safeStorage.getItem('token')}`
+        }
+      })
+
+      if (response.ok) {
+        const cameras = await response.json()
+        setSurveillanceCameras(cameras || [])
+        console.log(`Loaded ${cameras.length} surveillance cameras in viewport`)
+      } else {
+        console.error(`Camera API error: ${response.status} ${response.statusText}`)
+        const errorText = await response.text()
+        console.error('Camera API response:', errorText)
+      }
+    } catch (error) {
+      console.error('Failed to search surveillance cameras:', error)
+    }
+  }
+
   const determineType = (tags: any): string => {
     if (tags.amenity === 'sanitary_dump_station') return 'dump_stations'
     if (tags.highway === 'rest_area') return 'rest_areas'
@@ -2984,8 +4087,8 @@ export default function MapView() {
     <div>
       <h1>Map View</h1>
 
-      {/* Map at the top */}
-      <div className="card mb-4" style={{ height: 'calc(100vh - 200px)', minHeight: '600px', padding: '0', overflow: 'hidden', position: 'relative' }}>
+      {/* Map at the top - resizable */}
+      <div className="card mb-4" style={{ height: `${mapHeight}px`, minHeight: '400px', padding: '0', overflow: 'hidden', position: 'relative' }}>
         {!center ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
             Loading map...
@@ -2998,8 +4101,9 @@ export default function MapView() {
           style={{ height: '100%', width: '100%' }}
         >
           <MapUpdater center={center} shouldUpdate={shouldUpdateMap} onUpdated={() => setShouldUpdateMap(false)} />
-          <MapEventHandler onBoundsChange={setMapBounds} onCenterChange={setCenter} />
+          <MapEventHandler onBoundsChange={setMapBounds} onCenterChange={setCenter} onZoomChange={setMapZoom} />
           <UserLocationMarker />
+          <LocateControl />
           <MapContextMenu />
 
           {/* Map Tile Layer - controlled by dropdown */}
@@ -3510,11 +4614,15 @@ export default function MapView() {
                 boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                 border: '1px solid var(--border-color)',
                 padding: '15px',
-                width: '300px',
-                maxHeight: 'calc(100vh - 90px)',
-                overflowY: 'auto',
-                zIndex: 1001
+                width: '620px',
+                maxWidth: 'calc(100vw - 40px)',
+                zIndex: 1001,
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '15px'
               }}>
+                {/* Left Column */}
+                <div>
                 {/* Map Style Section */}
                 <div style={{ marginBottom: '15px' }}>
                   <div style={{
@@ -3775,6 +4883,75 @@ export default function MapView() {
                         </label>
                       </div>
 
+                      {/* Restriction Type Filters */}
+                      <div style={{ marginBottom: '10px' }}>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Show types:
+                        </label>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            fontSize: '10px',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            background: heightShowBridges ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg-tertiary)',
+                            border: `1px solid ${heightShowBridges ? '#3b82f6' : 'var(--border-color)'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={heightShowBridges}
+                              onChange={(e) => setHeightShowBridges(e.target.checked)}
+                              style={{ display: 'none' }}
+                            />
+                            <span style={{ fontSize: '12px' }}>▲</span>
+                            <span>Bridges</span>
+                          </label>
+                          <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            fontSize: '10px',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            background: heightShowTunnels ? 'rgba(139, 92, 246, 0.2)' : 'var(--bg-tertiary)',
+                            border: `1px solid ${heightShowTunnels ? '#8b5cf6' : 'var(--border-color)'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={heightShowTunnels}
+                              onChange={(e) => setHeightShowTunnels(e.target.checked)}
+                              style={{ display: 'none' }}
+                            />
+                            <span style={{ fontSize: '12px' }}>⌓</span>
+                            <span>Tunnels</span>
+                          </label>
+                          <label style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            fontSize: '10px',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            background: heightShowParking ? 'rgba(245, 158, 11, 0.2)' : 'var(--bg-tertiary)',
+                            border: `1px solid ${heightShowParking ? '#f59e0b' : 'var(--border-color)'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={heightShowParking}
+                              onChange={(e) => setHeightShowParking(e.target.checked)}
+                              style={{ display: 'none' }}
+                            />
+                            <span style={{ fontSize: '12px' }}>P</span>
+                            <span>Parking</span>
+                          </label>
+                        </div>
+                      </div>
+
                       {/* Max results */}
                       <div>
                         <label style={{ display: 'block', marginBottom: '4px', fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -3815,14 +4992,17 @@ export default function MapView() {
                       </div>
                     </>
                   )}
+                </div>
+                </div>
 
+                {/* Right Column */}
+                <div>
                   {/* Railroad Crossings Toggle */}
                   <div style={{
                     fontSize: '12px',
+                    fontWeight: 'bold',
                     color: 'var(--text-secondary)',
-                    marginTop: '12px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid var(--border-color)',
+                    marginBottom: '8px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
@@ -3909,6 +5089,53 @@ export default function MapView() {
                             {filteredRailroadCrossings.filter(c => c.onRoute).length} on your route
                           </div>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Surveillance Cameras Toggle */}
+                  <div style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    marginTop: '12px',
+                    paddingTop: '12px',
+                    borderTop: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      📷 Flock (and other) Cameras
+                    </span>
+                    <button
+                      onClick={() => setShowCameras(!showCameras)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: showCameras ? '#E11D48' : 'var(--bg-tertiary)',
+                        color: showCameras ? 'white' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {showCameras ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                  {showCameras && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      background: 'var(--bg-tertiary)',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      color: 'var(--text-muted)',
+                      textAlign: 'center'
+                    }}>
+                      <div>Showing {surveillanceCameras.length} cameras in view</div>
+                      <div style={{ marginTop: '4px', fontSize: '9px', opacity: 0.7 }}>
+                        Includes Flock/ALPR, traffic, and surveillance cameras
                       </div>
                     </div>
                   )}
@@ -4914,30 +6141,38 @@ export default function MapView() {
                 })
               }}
             >
-              {filteredHeights.map((height) => (
+              {filteredHeights.map((height) => {
+                // Determine restriction type - use restriction_type if available, fallback to is_parking_garage
+                const restrictionType = height.restriction_type || (height.is_parking_garage ? 'parking' : 'bridge')
+                const typeLabel = restrictionType === 'parking' ? 'Parking Garage' : restrictionType === 'tunnel' ? 'Tunnel' : 'Bridge/Overpass'
+                const typeEmoji = restrictionType === 'parking' ? '🅿️' : restrictionType === 'tunnel' ? '🚇' : '🌉'
+                const isSafe = height.height_feet > userRvHeight
+                const bgColor = !isSafe ? '#FEE2E2' : height.height_feet - userRvHeight <= 5/12 ? '#FEF3C7' : '#D1FAE5'
+
+                return (
                 <Marker
                   key={`height-${height.id}`}
                   position={[height.latitude, height.longitude]}
-                  icon={createHeightIcon(height.height_feet, height.is_parking_garage, userRvHeight, height.onRoute)}
+                  icon={createHeightIcon(height.height_feet, restrictionType, userRvHeight, height.onRoute)}
                 >
                   <Popup>
                     <div style={{ minWidth: '200px' }}>
                       <h3 style={{
                         margin: '0 0 8px 0',
-                        color: height.is_parking_garage ? '#6366F1' : (height.height_feet < 11 ? '#DC2626' : height.height_feet < 13 ? '#F59E0B' : '#10B981'),
+                        color: !isSafe ? '#DC2626' : height.height_feet - userRvHeight <= 5/12 ? '#F59E0B' : '#10B981',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'
                       }}>
-                        <span style={{ fontSize: '20px' }}>{height.is_parking_garage ? '🅿️' : '⚠️'}</span>
-                        {height.is_parking_garage ? 'Parking Garage' : 'Low Clearance'}
+                        <span style={{ fontSize: '20px' }}>{typeEmoji}</span>
+                        {typeLabel}
                       </h3>
                       <div style={{
                         fontSize: '24px',
                         fontWeight: 'bold',
                         textAlign: 'center',
                         padding: '10px',
-                        background: height.is_parking_garage ? '#EEF2FF' : (height.height_feet < 11 ? '#FEE2E2' : height.height_feet < 13 ? '#FEF3C7' : '#D1FAE5'),
+                        background: bgColor,
                         borderRadius: '6px',
                         marginBottom: '10px'
                       }}>
@@ -4970,7 +6205,7 @@ export default function MapView() {
                     </div>
                   </Popup>
                 </Marker>
-              ))}
+              )})}
             </MarkerClusterGroup>
           )}
 
@@ -5091,6 +6326,252 @@ export default function MapView() {
                         textAlign: 'center'
                       }}>
                         Always stop, look, and listen
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MarkerClusterGroup>
+          )}
+
+          {/* Surveillance Cameras */}
+          {showCameras && surveillanceCameras.length > 0 && (
+            <MarkerClusterGroup
+              chunkedLoading
+              maxClusterRadius={50}
+              disableClusteringAtZoom={16}
+              iconCreateFunction={(cluster) => {
+                const count = cluster.getChildCount()
+                return L.divIcon({
+                  html: `<div style="
+                    background: #E11D48;
+                    color: white;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    font-weight: bold;
+                    border: 2px solid white;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+                  ">📷${count}</div>`,
+                  className: 'camera-cluster-icon',
+                  iconSize: L.point(32, 32),
+                })
+              }}
+            >
+              {surveillanceCameras.map((camera) => (
+                <Marker
+                  key={`camera-${camera.id}`}
+                  position={[camera.latitude, camera.longitude]}
+                  icon={createCameraIcon(camera.camera_type, camera.camera_direction, mapZoom)}
+                >
+                  <Popup>
+                    <div style={{ minWidth: '220px' }}>
+                      <h3 style={{
+                        margin: '0 0 8px 0',
+                        color: '#E11D48',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '20px' }}>📷</span>
+                        Surveillance Camera
+                      </h3>
+                      <div style={{
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        padding: '8px',
+                        background: '#FEE2E2',
+                        borderRadius: '6px',
+                        marginBottom: '10px',
+                        color: '#991B1B'
+                      }}>
+                        {camera.camera_type === 'flock' ? '🚗 Flock ALPR Camera' :
+                         camera.camera_type === 'alpr' ? '🚗 ALPR Camera' :
+                         camera.camera_type === 'traffic' ? '🚦 Traffic Camera' :
+                         camera.camera_type === 'dome' ? '🔵 Dome Camera' :
+                         camera.camera_type === 'ring' ? '🔔 Ring Camera (Police Access)' :
+                         camera.camera_type === 'doorbell' ? '🚪 Doorbell Camera' :
+                         '📹 Surveillance Camera'}
+                      </div>
+                      {camera.name && (
+                        <p style={{ margin: '5px 0', fontSize: '13px', fontWeight: 'bold' }}>
+                          {camera.name}
+                        </p>
+                      )}
+                      {camera.operator && (
+                        <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
+                          👤 Operator: {camera.operator}
+                        </p>
+                      )}
+                      {camera.surveillance_zone && (
+                        <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
+                          📍 Zone: {camera.surveillance_zone}
+                        </p>
+                      )}
+                      {camera.networks_shared > 0 && (
+                        <p style={{ margin: '5px 0', fontSize: '12px', color: '#DC2626', fontWeight: 'bold' }}>
+                          🔗 Shared with {camera.networks_shared} agencies
+                        </p>
+                      )}
+                      {camera.camera_direction !== null && (
+                        <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
+                          🧭 Direction: {camera.camera_direction}°
+                        </p>
+                      )}
+                      <div style={{
+                        marginTop: '10px',
+                        paddingTop: '10px',
+                        borderTop: '1px solid #e5e7eb',
+                        fontSize: '11px',
+                        background: camera.camera_type === 'flock' || camera.camera_type === 'alpr' || camera.camera_type === 'ring' || camera.camera_type === 'doorbell' ? '#FEE2E2' : '#FEF3C7',
+                        padding: '10px',
+                        borderRadius: '4px'
+                      }}>
+                        {camera.camera_type === 'ring' || camera.camera_type === 'doorbell' ? (
+                          <>
+                            <div style={{ fontWeight: 'bold', color: '#DC2626', marginBottom: '6px', fontSize: '12px' }}>
+                              🚨 WARRANTLESS SURVEILLANCE WARNING
+                            </div>
+                            <div style={{ color: '#7F1D1D', lineHeight: '1.5', marginBottom: '8px' }}>
+                              <strong>Ring cameras enable warrantless government surveillance:</strong>
+                            </div>
+                            <ul style={{ color: '#7F1D1D', lineHeight: '1.5', margin: '0 0 8px 0', paddingLeft: '16px', fontSize: '10px' }}>
+                              <li><strong>Police can request footage without a warrant</strong> through Ring's "Neighbors" program</li>
+                              <li>Over <strong>2,000+ law enforcement agencies</strong> have partnerships with Ring</li>
+                              <li><strong>Federal agencies (FBI, ICE, DHS)</strong> can access footage through local police partnerships</li>
+                              <li>Footage is stored on Amazon servers and can be <strong>subpoenaed without owner notification</strong></li>
+                              <li>Creates a <strong>distributed surveillance network</strong> across neighborhoods</li>
+                            </ul>
+                            <div style={{
+                              background: '#7F1D1D',
+                              color: '#FEE2E2',
+                              padding: '8px',
+                              borderRadius: '4px',
+                              marginBottom: '8px',
+                              fontSize: '10px',
+                              lineHeight: '1.4'
+                            }}>
+                              <strong>PRIVACY RISK:</strong> Ring cameras enable tracking of individuals across neighborhoods without their knowledge or consent. Activists, journalists, immigrants, and marginalized communities are disproportionately impacted.
+                            </div>
+                            <a
+                              href="https://www.eff.org/deeplinks/2022/07/ring-reveals-they-give-videos-police-without-user-consent-or-warrant"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'block',
+                                background: '#9CA3AF',
+                                color: 'white',
+                                padding: '6px 10px',
+                                borderRadius: '4px',
+                                textDecoration: 'none',
+                                textAlign: 'center',
+                                fontSize: '11px'
+                              }}
+                            >
+                              📖 Learn more (EFF)
+                            </a>
+                          </>
+                        ) : camera.camera_type === 'flock' || camera.camera_type === 'alpr' ? (
+                          <>
+                            <div style={{ fontWeight: 'bold', color: '#DC2626', marginBottom: '6px', fontSize: '12px' }}>
+                              🚨 CRITICAL SECURITY WARNING
+                            </div>
+                            <div style={{ color: '#7F1D1D', lineHeight: '1.5', marginBottom: '8px' }}>
+                              <strong>Flock/ALPR cameras pose serious privacy and safety risks:</strong>
+                            </div>
+                            <ul style={{ color: '#7F1D1D', lineHeight: '1.5', margin: '0 0 8px 0', paddingLeft: '16px', fontSize: '10px' }}>
+                              <li>Many run on <strong>unencrypted Android 8 systems</strong> with default/no credentials</li>
+                              <li>Thousands are <strong>publicly accessible on Shodan.io</strong> with live video feeds</li>
+                              <li><strong>License plate scan data can be exported without authentication</strong></li>
+                              <li>Movement patterns enable tracking by <strong>anyone</strong> - including malicious actors</li>
+                            </ul>
+                            <div style={{
+                              background: '#7F1D1D',
+                              color: '#FEE2E2',
+                              padding: '8px',
+                              borderRadius: '4px',
+                              marginBottom: '8px',
+                              fontSize: '10px',
+                              lineHeight: '1.4'
+                            }}>
+                              <strong>DANGER TO VULNERABLE POPULATIONS:</strong> These security failures enable human traffickers, stalkers, and abusers to track victims, children, and at-risk individuals in real-time. This is not theoretical - it is happening.
+                            </div>
+                            {camera.shodan_url ? (
+                              <a
+                                href={camera.shodan_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'block',
+                                  background: '#DC2626',
+                                  color: 'white',
+                                  padding: '6px 10px',
+                                  borderRadius: '4px',
+                                  textDecoration: 'none',
+                                  textAlign: 'center',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold'
+                                }}
+                              >
+                                🔓 View on Shodan (May be publicly accessible)
+                              </a>
+                            ) : (
+                              <a
+                                href={`https://www.shodan.io/search?query=flock+camera+${camera.latitude?.toFixed(2)}+${camera.longitude?.toFixed(2)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'block',
+                                  background: '#9CA3AF',
+                                  color: 'white',
+                                  padding: '6px 10px',
+                                  borderRadius: '4px',
+                                  textDecoration: 'none',
+                                  textAlign: 'center',
+                                  fontSize: '11px'
+                                }}
+                              >
+                                🔍 Search Shodan for nearby cameras
+                              </a>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ fontWeight: 'bold', color: '#92400E', marginBottom: '4px' }}>
+                              ⚠️ Privacy Notice
+                            </div>
+                            <div style={{ color: '#78350F', lineHeight: '1.4' }}>
+                              This camera may record video and audio in public spaces.
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div style={{
+                        fontSize: '10px',
+                        color: '#9CA3AF',
+                        textAlign: 'center',
+                        marginTop: '8px',
+                        borderTop: '1px solid #e5e7eb',
+                        paddingTop: '8px'
+                      }}>
+                        Camera data provided by{' '}
+                        <a
+                          href="https://deflock.me"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#3B82F6', textDecoration: 'underline' }}
+                        >
+                          DeFlock.me
+                        </a>
+                        <br />
+                        <span style={{ fontSize: '9px', opacity: 0.7 }}>
+                          Mapping surveillance for public awareness
+                        </span>
                       </div>
                     </div>
                   </Popup>
@@ -5368,7 +6849,7 @@ export default function MapView() {
         {pois.length > 0 && (
           <div style={{
             position: 'absolute',
-            bottom: '10px',
+            bottom: '30px',
             right: '10px',
             background: 'var(--card-bg)',
             padding: '8px 12px',
@@ -5381,6 +6862,35 @@ export default function MapView() {
             Found {pois.length} POI{pois.length !== 1 ? 's' : ''}
           </div>
         )}
+
+        {/* Resize handle */}
+        <div
+          onMouseDown={handleResizeStart}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '16px',
+            cursor: 'ns-resize',
+            background: isResizing ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1001,
+            transition: 'background 0.2s'
+          }}
+          title="Drag to resize map"
+        >
+          <div style={{
+            width: '40px',
+            height: '4px',
+            background: isResizing ? 'white' : 'var(--text-muted)',
+            borderRadius: '2px',
+            opacity: 0.6
+          }} />
+        </div>
       </div>
 
       <div className="card mb-4">

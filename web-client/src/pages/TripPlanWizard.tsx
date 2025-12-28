@@ -65,6 +65,11 @@ interface SearchResult {
   }
 }
 
+interface DistanceBubble {
+  radius_miles: number
+  label: string
+}
+
 interface SuggestedStop {
   day: number
   name: string
@@ -75,6 +80,14 @@ interface SuggestedStop {
   city?: string
   state?: string
   is_overnight: boolean
+  needs_user_selection?: boolean
+  search_radius_miles?: number
+  distance_bubbles?: {
+    '15_min': DistanceBubble
+    '30_min': DistanceBubble
+    '60_min': DistanceBubble
+  }
+  suggested_sources?: string[]
 }
 
 interface GapSuggestion {
@@ -91,12 +104,23 @@ interface GapSuggestion {
   search_radius_miles: number
 }
 
+interface FuelEstimate {
+  total_gallons: number
+  avg_price_per_gallon: number
+  estimated_cost: number
+  avg_mpg: number
+  fuel_type: string
+  num_fill_ups: number
+}
+
 interface TripPlan {
   total_distance_miles: number
+  total_duration_hours?: number
   estimated_days: number
   estimated_arrival: string
   suggested_stops: SuggestedStop[]
   gap_suggestions?: GapSuggestion[]
+  fuel_estimate?: FuelEstimate
 }
 
 export default function TripPlanWizard() {
@@ -119,6 +143,10 @@ export default function TripPlanWizard() {
   const [maxDrivingHours, setMaxDrivingHours] = useState(8)
   const [rvProfileId, setRvProfileId] = useState<number | null>(null)
 
+  // Route preference state
+  const [routePreference, setRoutePreference] = useState('fastest')
+  const [availableRoutePreferences, setAvailableRoutePreferences] = useState<Record<string, string>>({})
+
   // Waypoints/stops state
   const [hasPlannedStops, setHasPlannedStops] = useState<'yes' | 'no' | 'later' | null>(null)
   const [plannedWaypoints, setPlannedWaypoints] = useState<LocationData[]>([])
@@ -126,6 +154,7 @@ export default function TripPlanWizard() {
   const [waypointSearchResults, setWaypointSearchResults] = useState<SearchResult[]>([])
   const [showWaypointSuggestions, setShowWaypointSuggestions] = useState(false)
   const waypointTimeoutRef = useRef<NodeJS.Timeout>()
+  const [includeHarvestHosts, setIncludeHarvestHosts] = useState(false)
 
   // Harvest Hosts import state
   const [showHHImportDialog, setShowHHImportDialog] = useState(false)
@@ -153,12 +182,55 @@ export default function TripPlanWizard() {
   const [tripPlan, setTripPlan] = useState<TripPlan | null>(null)
   const [planError, setPlanError] = useState('')
 
+  // Route safety check
+  interface SafetyHazard {
+    type: string
+    severity: string
+    name: string
+    latitude: number
+    longitude: number
+    message: string
+    value?: number
+    limit?: number
+  }
+  interface SafetyCheck {
+    safe: boolean
+    hazard_count: number
+    critical_count: number
+    warning_count: number
+    hazards: SafetyHazard[]
+  }
+  const [safetyCheck, setSafetyCheck] = useState<SafetyCheck | null>(null)
+  const [safetyLoading, setSafetyLoading] = useState(false)
+
   // Search status for retry feedback
   const [searchStatus, setSearchStatus] = useState('')
 
   useEffect(() => {
     loadRVProfiles()
+    loadRoutePreferences()
   }, [])
+
+  const loadRoutePreferences = async () => {
+    try {
+      const response = await fetch('/api/trips/route-preferences')
+      const data = await response.json()
+      if (data.preferences) {
+        setAvailableRoutePreferences(data.preferences)
+        if (data.default) {
+          setRoutePreference(data.default)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load route preferences:', error)
+      // Fallback defaults
+      setAvailableRoutePreferences({
+        fastest: 'Fastest route by time',
+        shortest: 'Shortest route by distance',
+        scenic: 'Scenic route avoiding highways'
+      })
+    }
+  }
 
   const loadRVProfiles = async () => {
     try {
@@ -647,7 +719,9 @@ export default function TripPlanWizard() {
         trip_type: tripType,
         daily_miles_target: dailyMilesTarget,
         max_driving_hours: maxDrivingHours,
-        rv_profile_id: rvProfileId
+        rv_profile_id: rvProfileId,
+        route_preference: routePreference,
+        include_harvest_hosts: includeHarvestHosts
       }
 
       if (arrivalType === 'specific' && arrivalDate) {
@@ -656,6 +730,47 @@ export default function TripPlanWizard() {
 
       const response = await tripsApi.plan(planData)
       setTripPlan(response.data)
+
+      // Perform route safety check if RV profile selected
+      if (rvProfileId) {
+        setSafetyLoading(true)
+        try {
+          const selectedRv = rvProfiles.find(rv => rv.id === rvProfileId)
+          if (selectedRv) {
+            // Build route coordinates from start, waypoints, and destination
+            const routeCoords: number[][] = [
+              [startLocation.latitude, startLocation.longitude]
+            ]
+            plannedWaypoints.forEach(wp => {
+              routeCoords.push([wp.latitude, wp.longitude])
+            })
+            // Add suggested stops
+            response.data.suggested_stops?.forEach((stop: any) => {
+              routeCoords.push([stop.latitude, stop.longitude])
+            })
+            routeCoords.push([destLocation.latitude, destLocation.longitude])
+
+            const safetyResponse = await fetch('/api/trips/route-safety-check', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                route_coords: routeCoords,
+                rv_height_ft: selectedRv.height_ft || selectedRv.height,
+                rv_weight_lbs: selectedRv.weight_lbs || selectedRv.gvwr,
+                buffer_miles: 0.5
+              })
+            })
+            const safetyData = await safetyResponse.json()
+            setSafetyCheck(safetyData)
+          }
+        } catch (safetyError) {
+          console.error('Safety check failed:', safetyError)
+          // Non-critical, don't block the plan
+        } finally {
+          setSafetyLoading(false)
+        }
+      }
+
       setStep(6)
     } catch (error: any) {
       console.error('Failed to calculate plan:', error)
@@ -715,7 +830,9 @@ export default function TripPlanWizard() {
         trip_type: tripType,
         daily_miles_target: dailyMilesTarget,
         max_driving_hours: maxDrivingHours,
-        rv_profile_id: rvProfileId
+        rv_profile_id: rvProfileId,
+        route_preference: routePreference,
+        include_harvest_hosts: includeHarvestHosts
       }
 
       if (arrivalType === 'specific' && arrivalDate) {
@@ -1124,10 +1241,44 @@ export default function TripPlanWizard() {
               >
                 <div style={{ fontWeight: 600 }}>No specific stops</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '5px' }}>
-                  Let the planner suggest stops based on daily driving targets
+                  Show search areas along the route where you should look for accommodations
                 </div>
               </div>
             </div>
+
+            {/* Harvest Hosts option when "No specific stops" is selected */}
+            {hasPlannedStops === 'no' && (
+              <div style={{
+                marginTop: '20px',
+                padding: '15px',
+                background: 'var(--bg-tertiary)',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  cursor: 'pointer'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={includeHarvestHosts}
+                    onChange={(e) => setIncludeHarvestHosts(e.target.checked)}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ color: '#16a34a' }}>🌾</span>
+                      Include Harvest Hosts suggestions
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Show Harvest Hosts locations in search areas (requires subscription)
+                    </div>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {hasPlannedStops === 'yes' && (
               <div style={{ marginTop: '25px' }}>
@@ -1693,6 +1844,50 @@ export default function TripPlanWizard() {
             <h2 style={{ marginBottom: '20px' }}>Trip Preferences</h2>
 
             <div className="form-group">
+              <label className="label">Route Preference</label>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '10px',
+                marginBottom: '20px'
+              }}>
+                {Object.entries(availableRoutePreferences).map(([key, desc]) => (
+                  <div
+                    key={key}
+                    onClick={() => setRoutePreference(key)}
+                    style={{
+                      padding: '15px',
+                      borderRadius: '8px',
+                      border: `2px solid ${routePreference === key ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                      background: routePreference === key ? 'rgba(37, 99, 235, 0.1)' : 'var(--bg-tertiary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      marginBottom: '4px',
+                      textTransform: 'capitalize'
+                    }}>
+                      {key === 'fastest' && '🚀 '}
+                      {key === 'shortest' && '📍 '}
+                      {key === 'recommended' && '⭐ '}
+                      {key === 'scenic' && '🏞️ '}
+                      {key === 'fuel_efficient' && '⛽ '}
+                      {key === 'no_tolls' && '🆓 '}
+                      {key === 'no_highways' && '🛤️ '}
+                      {key.replace(/_/g, ' ')}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {desc}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
               <label className="label">Trip Type</label>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
@@ -1774,7 +1969,12 @@ export default function TripPlanWizard() {
 
             {tripPlan && (
               <>
-                <div className="grid grid-3 mb-4">
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: tripPlan.fuel_estimate ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
+                  gap: '15px',
+                  marginBottom: '20px'
+                }}>
                   <div className="card" style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Distance</div>
                     <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
@@ -1786,6 +1986,11 @@ export default function TripPlanWizard() {
                     <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
                       {tripPlan.estimated_days} days
                     </div>
+                    {tripPlan.total_duration_hours && (
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        ~{tripPlan.total_duration_hours.toFixed(1)} hrs driving
+                      </div>
+                    )}
                   </div>
                   <div className="card" style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Est. Arrival</div>
@@ -1793,7 +1998,158 @@ export default function TripPlanWizard() {
                       {new Date(tripPlan.estimated_arrival).toLocaleDateString()}
                     </div>
                   </div>
+                  {tripPlan.fuel_estimate && (
+                    <div className="card" style={{ textAlign: 'center', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Est. Fuel Cost</div>
+                      <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>
+                        ${tripPlan.fuel_estimate.estimated_cost.toFixed(0)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {tripPlan.fuel_estimate.total_gallons.toFixed(0)} gal @ ${tripPlan.fuel_estimate.avg_price_per_gallon.toFixed(2)}/gal
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Fuel Details */}
+                {tripPlan.fuel_estimate && (
+                  <div style={{
+                    background: 'rgba(59, 130, 246, 0.05)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{ fontWeight: 600, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '16px' }}>&#x26FD;</span>
+                      Fuel Estimate Details
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', fontSize: '13px' }}>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Fuel Type:</span>{' '}
+                        <strong style={{ textTransform: 'capitalize' }}>{tripPlan.fuel_estimate.fuel_type}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Your MPG:</span>{' '}
+                        <strong>{tripPlan.fuel_estimate.avg_mpg.toFixed(1)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: 'var(--text-muted)' }}>Est. Fill-ups:</span>{' '}
+                        <strong>{tripPlan.fuel_estimate.num_fill_ups}</strong>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>
+                      * Estimate based on regional fuel prices and your RV&apos;s average MPG
+                    </div>
+                  </div>
+                )}
+
+                {/* Safety Check Results */}
+                {safetyLoading && (
+                  <div style={{
+                    padding: '15px',
+                    background: 'var(--bg-tertiary)',
+                    borderRadius: '8px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}>
+                    <span style={{
+                      display: 'inline-block',
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid var(--accent-primary)',
+                      borderTopColor: 'transparent',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    Checking route for hazards...
+                  </div>
+                )}
+
+                {safetyCheck && !safetyLoading && (
+                  <div style={{
+                    padding: '15px',
+                    background: safetyCheck.critical_count > 0
+                      ? 'rgba(239, 68, 68, 0.1)'
+                      : safetyCheck.warning_count > 0
+                        ? 'rgba(245, 158, 11, 0.1)'
+                        : 'rgba(34, 197, 94, 0.1)',
+                    border: `2px solid ${safetyCheck.critical_count > 0
+                      ? '#ef4444'
+                      : safetyCheck.warning_count > 0
+                        ? '#f59e0b'
+                        : '#22c55e'}`,
+                    borderRadius: '8px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      fontWeight: 600,
+                      color: safetyCheck.critical_count > 0
+                        ? '#ef4444'
+                        : safetyCheck.warning_count > 0
+                          ? '#f59e0b'
+                          : '#22c55e',
+                      marginBottom: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      {safetyCheck.critical_count > 0 ? (
+                        <><span style={{ fontSize: '18px' }}>&#9888;</span> {safetyCheck.critical_count} Critical Hazard{safetyCheck.critical_count !== 1 ? 's' : ''} Detected</>
+                      ) : safetyCheck.warning_count > 0 ? (
+                        <><span style={{ fontSize: '18px' }}>&#9888;</span> {safetyCheck.warning_count} Warning{safetyCheck.warning_count !== 1 ? 's' : ''} on Route</>
+                      ) : (
+                        <><span style={{ fontSize: '18px' }}>&#10003;</span> Route Safety Check Passed</>
+                      )}
+                    </div>
+
+                    {safetyCheck.hazards.length > 0 && (
+                      <div style={{ fontSize: '13px', marginBottom: '10px' }}>
+                        {safetyCheck.critical_count > 0 && (
+                          <p style={{ color: '#ef4444', margin: '0 0 8px 0' }}>
+                            There are {safetyCheck.critical_count} location(s) on this route that may not be passable with your RV.
+                          </p>
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                          {safetyCheck.hazards.slice(0, 10).map((hazard, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                padding: '10px',
+                                background: 'var(--card-bg)',
+                                borderRadius: '6px',
+                                borderLeft: `4px solid ${hazard.severity === 'critical' ? '#ef4444' : '#f59e0b'}`
+                              }}
+                            >
+                              <div style={{ fontWeight: 500, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {hazard.type === 'height' && <span>&#x2195;</span>}
+                                {hazard.type === 'weight' && <span>&#x2696;</span>}
+                                {hazard.type === 'railroad' && <span>&#x1F6A7;</span>}
+                                {hazard.name}
+                              </div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                                {hazard.message}
+                              </div>
+                            </div>
+                          ))}
+                          {safetyCheck.hazards.length > 10 && (
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                              ...and {safetyCheck.hazards.length - 10} more hazards
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {safetyCheck.safe && safetyCheck.hazard_count === 0 && (
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                        No height or weight restrictions found that would affect your RV along this route.
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <h3 style={{ marginBottom: '15px' }}>Route Stops</h3>
 
@@ -1811,19 +2167,82 @@ export default function TripPlanWizard() {
                     </div>
                   </div>
 
-                  {/* Suggested stops */}
+                  {/* Suggested search areas */}
                   {tripPlan.suggested_stops.map((stop, index) => (
                     <div key={index} style={{
                       padding: '15px',
-                      background: 'var(--bg-tertiary)',
+                      background: stop.needs_user_selection ? 'rgba(245, 158, 11, 0.1)' : 'var(--bg-tertiary)',
                       borderRadius: '8px',
-                      borderLeft: '4px solid var(--accent-warning)'
+                      border: stop.needs_user_selection ? '2px solid #f59e0b' : 'none',
+                      borderLeft: stop.needs_user_selection ? '4px solid #f59e0b' : '4px solid var(--accent-warning)',
+                      animation: stop.needs_user_selection ? 'stopAreaPulse 3s ease-in-out infinite' : 'none'
                     }}>
-                      <div style={{ fontWeight: 600 }}>{stop.name}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {stop.miles_this_segment.toFixed(0)} miles from previous stop
-                        {stop.is_overnight && ' | Overnight'}
+                      <style>{`
+                        @keyframes stopAreaPulse {
+                          0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3); }
+                          50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.3); }
+                        }
+                      `}</style>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        {stop.needs_user_selection && (
+                          <span style={{ fontSize: '18px' }}>🏕️</span>
+                        )}
+                        <div style={{ fontWeight: 600, color: stop.needs_user_selection ? '#f59e0b' : 'inherit' }}>
+                          {stop.needs_user_selection ? `Day ${stop.day} - Search Area` : stop.name}
+                        </div>
                       </div>
+                      {stop.needs_user_selection ? (
+                        <>
+                          <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                            {stop.name}
+                          </div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                            {stop.miles_this_segment.toFixed(0)} miles from previous stop • Find overnight accommodation here
+                          </div>
+                          {/* Distance bubbles */}
+                          {stop.distance_bubbles && (
+                            <div style={{
+                              display: 'flex',
+                              gap: '8px',
+                              flexWrap: 'wrap',
+                              marginBottom: '10px'
+                            }}>
+                              {Object.entries(stop.distance_bubbles).map(([key, bubble]) => (
+                                <div key={key} style={{
+                                  padding: '4px 10px',
+                                  background: key === '15_min' ? 'rgba(34, 197, 94, 0.2)' :
+                                             key === '30_min' ? 'rgba(59, 130, 246, 0.2)' :
+                                             'rgba(168, 85, 247, 0.2)',
+                                  border: `1px solid ${key === '15_min' ? '#22c55e' :
+                                                       key === '30_min' ? '#3b82f6' : '#a855f7'}`,
+                                  borderRadius: '12px',
+                                  fontSize: '11px',
+                                  fontWeight: 500
+                                }}>
+                                  {bubble.label} ({bubble.radius_miles.toFixed(0)} mi)
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {/* Suggested sources */}
+                          {stop.suggested_sources && stop.suggested_sources.length > 0 && (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              Look for: {stop.suggested_sources.map(s =>
+                                s === 'harvest_hosts' ? '🌾 Harvest Hosts' :
+                                s === 'campground' ? '⛺ Campgrounds' :
+                                s === 'rv_park' ? '🚐 RV Parks' :
+                                s === 'walmart' ? '🏪 Walmart' :
+                                s === 'cracker_barrel' ? '🥘 Cracker Barrel' : s
+                              ).join(' • ')}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                          {stop.miles_this_segment.toFixed(0)} miles from previous stop
+                          {stop.is_overnight && ' | Overnight'}
+                        </div>
+                      )}
                     </div>
                   ))}
 
