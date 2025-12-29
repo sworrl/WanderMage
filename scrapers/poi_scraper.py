@@ -36,7 +36,7 @@ from base_runner import ScraperRunner
 from sqlalchemy.orm import Session
 from geoalchemy2.elements import WKTElement
 
-from app.core.database import SessionLocal
+from app.core.database import POISessionLocal
 from app.models.poi import POI as POIModel
 from app.models.scraper_status import ScraperStatus
 
@@ -155,6 +155,19 @@ class POIScraperRunner(ScraperRunner):
         self.total_saved = 0
         self.total_updated = 0
         self.rate_limit_delay = 2  # seconds between requests
+        self.poi_db: Session = None
+
+    def get_poi_db(self) -> Session:
+        """Get POI database session (separate from main scraper status db)."""
+        if self.poi_db is None or not self.poi_db.is_active:
+            self.poi_db = POISessionLocal()
+        return self.poi_db
+
+    def close_poi_db(self):
+        """Close POI database session."""
+        if self.poi_db:
+            self.poi_db.close()
+            self.poi_db = None
 
     async def query_overpass(self, query: str) -> Dict:
         """Execute an Overpass API query."""
@@ -233,7 +246,7 @@ class POIScraperRunner(ScraperRunner):
             'latitude': lat,
             'longitude': lon,
             'category': category,
-            'state': state,
+            'state': addr_state,
             'address': full_address,
             'city': city,
             'zip_code': zip_code,
@@ -260,7 +273,7 @@ class POIScraperRunner(ScraperRunner):
         - success: whether the save was successful
         - is_new: True if new record, False if updated existing
         """
-        db = self.get_db()
+        db = self.get_poi_db()
         try:
             # Check for existing by external_id
             existing = db.query(POIModel).filter(
