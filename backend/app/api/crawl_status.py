@@ -81,13 +81,18 @@ def get_completed_states(
     Get list of states with completed crawls.
     """
     # Get completed crawls grouped by state
-    completed = db.query(CrawlStatusModel.state_code).filter(
+    completed = db.query(CrawlStatusModel.current_state).filter(
         CrawlStatusModel.status == 'completed'
+    ).distinct().all()
+
+    # Get in-progress states
+    in_progress = db.query(CrawlStatusModel.current_state).filter(
+        CrawlStatusModel.status == 'running'
     ).distinct().all()
 
     return {
         "completed_states": [s[0] for s in completed if s[0]],
-        "in_progress_states": [],
+        "in_progress_states": [s[0] for s in in_progress if s[0]],
         "pending_states": []
     }
 

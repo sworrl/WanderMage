@@ -167,3 +167,51 @@ class WeightRestriction(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+class SurveillanceCamera(Base):
+    """Surveillance camera locations (Flock, traffic cams, etc.)"""
+    __tablename__ = "surveillance_cameras"
+
+    id = Column(Integer, primary_key=True, index=True)
+    serial = Column(String(64), unique=True, index=True)
+
+    name = Column(String)
+
+    # Location
+    location = Column(Geography(geometry_type='POINT', srid=4326), nullable=False)
+    latitude = Column(Float)
+    longitude = Column(Float)
+
+    # Camera details
+    camera_type = Column(String, index=True)  # alpr, traffic, security, etc.
+    camera_mount = Column(String)  # pole, building, etc.
+    camera_direction = Column(Float)  # Degrees from north
+
+    # Surveillance info
+    surveillance_type = Column(String)  # fixed, mobile, ptz
+    surveillance_zone = Column(String)
+
+    # Operator info
+    operator = Column(String, index=True)  # Flock Safety, City of X, etc.
+    operator_type = Column(String)  # government, private, law_enforcement
+    network_id = Column(String)
+    networks_shared = Column(Integer, default=0)
+
+    # Location details
+    state = Column(String(2), index=True)
+    city = Column(String)
+
+    # Data source
+    source = Column(String)
+    source_ref = Column(String)
+    verified = Column(Boolean, default=False)
+    check_date = Column(DateTime(timezone=True))
+
+    # Links
+    image_url = Column(String)
+    website = Column(String)
+    shodan_url = Column(String)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

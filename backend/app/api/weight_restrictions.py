@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from typing import Optional
 
-from ..core.database import get_poi_db
+from ..core.database import get_road_db
 from ..models.poi import WeightRestriction as WeightRestrictionModel
 
 router = APIRouter()
@@ -22,7 +22,7 @@ def search_weight_restrictions_by_bbox(
     east: float = Query(..., description="Eastern longitude"),
     max_weight_tons: Optional[float] = Query(None, description="Filter by max weight in tons"),
     limit: int = Query(10000, le=50000, description="Maximum results"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get all weight restrictions within a bounding box.
@@ -88,7 +88,7 @@ def get_weight_restrictions_along_route(
     buffer_miles: float = Query(3.0, le=10.0, description="Buffer distance from route in miles"),
     max_weight_tons: Optional[float] = Query(None, description="RV weight in tons - show only restrictions below this"),
     limit: int = Query(5000, le=25000, description="Maximum results"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get all weight restrictions along a route.

@@ -18,9 +18,14 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     preferences = Column(JSON, default=dict)
 
+    # Role for permission system
+    role = Column(String(50), default="user")  # owner, admin, user, or custom role
+
     # Relationships
-    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan", foreign_keys="Trip.user_id")
     fuel_logs = relationship("FuelLog", back_populates="user", cascade="all, delete-orphan")
     state_visits = relationship("StateVisit", back_populates="user", cascade="all, delete-orphan")
     rv_profiles = relationship("RVProfile", back_populates="user", cascade="all, delete-orphan")
     harvest_host_stays = relationship("HarvestHostStay", back_populates="user", cascade="all, delete-orphan")
+    achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
+    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")

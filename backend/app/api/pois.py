@@ -9,9 +9,9 @@ import httpx
 from datetime import datetime, timedelta
 
 from ..core.database import get_db, get_poi_db
-from ..models.poi import POI as POIModel, OverpassHeight as OverpassHeightModel
+from ..models.poi import POI as POIModel, OverpassHeight as OverpassHeightModel, SurveillanceCamera as SurveillanceCameraModel
 from ..models.user import User as UserModel
-from ..schemas.poi import POI, POICreate, OverpassHeight
+from ..schemas.poi import POI, POICreate, OverpassHeight, SurveillanceCamera
 from .auth import get_current_user
 
 router = APIRouter()
@@ -675,6 +675,114 @@ def search_pois(
 
     pois = query.limit(limit).all()
     return pois
+
+
+@router.get("/cameras", response_model=List[SurveillanceCamera])
+def search_surveillance_cameras(
+    # Support both bounding box and center point queries
+    min_lat: Optional[float] = Query(None, description="Minimum latitude (bounding box)"),
+    max_lat: Optional[float] = Query(None, description="Maximum latitude (bounding box)"),
+    min_lon: Optional[float] = Query(None, description="Minimum longitude (bounding box)"),
+    max_lon: Optional[float] = Query(None, description="Maximum longitude (bounding box)"),
+    latitude: Optional[float] = Query(None, description="Center latitude (radius search)"),
+    longitude: Optional[float] = Query(None, description="Center longitude (radius search)"),
+    radius_miles: float = Query(25, description="Search radius in miles"),
+    camera_type: Optional[str] = Query(None, description="Filter by camera type"),
+    operator: Optional[str] = Query(None, description="Filter by operator"),
+    limit: int = 2000,
+    db: Session = Depends(get_poi_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Search surveillance cameras within a bounding box or radius of a location"""
+    # Bounding box query (preferred by frontend map)
+    if min_lat is not None and max_lat is not None and min_lon is not None and max_lon is not None:
+        # Use lat/lon filter directly on the extracted coordinates (simpler and works with geography)
+        query = db.query(SurveillanceCameraModel).filter(
+            SurveillanceCameraModel.latitude >= min_lat,
+            SurveillanceCameraModel.latitude <= max_lat,
+            SurveillanceCameraModel.longitude >= min_lon,
+            SurveillanceCameraModel.longitude <= max_lon
+        )
+
+        if camera_type:
+            query = query.filter(SurveillanceCameraModel.camera_type == camera_type)
+
+        if operator:
+            query = query.filter(SurveillanceCameraModel.operator.ilike(f"%{operator}%"))
+
+        cameras = query.limit(limit).all()
+        return cameras
+
+    # Radius search (fallback)
+    elif latitude is not None and longitude is not None:
+        radius_meters = radius_miles * 1609.34
+
+        point_wkt = f"POINT({longitude} {latitude})"
+        search_point = WKTElement(point_wkt, srid=4326)
+
+        query = db.query(SurveillanceCameraModel).filter(
+            ST_DWithin(
+                SurveillanceCameraModel.location,
+                search_point,
+                radius_meters
+            )
+        )
+
+        if camera_type:
+            query = query.filter(SurveillanceCameraModel.camera_type == camera_type)
+
+        if operator:
+            query = query.filter(SurveillanceCameraModel.operator.ilike(f"%{operator}%"))
+
+        # Order by distance
+        query = query.order_by(ST_Distance(SurveillanceCameraModel.location, search_point))
+
+        cameras = query.limit(limit).all()
+        return cameras
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Either bounding box (min_lat, max_lat, min_lon, max_lon) or center point (latitude, longitude) is required"
+        )
+
+
+@router.get("/cameras/stats")
+def get_camera_stats(
+    db: Session = Depends(get_poi_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Get surveillance camera statistics"""
+    total = db.query(func.count(SurveillanceCameraModel.id)).scalar() or 0
+
+    # By camera type
+    type_counts = db.query(
+        SurveillanceCameraModel.camera_type,
+        func.count(SurveillanceCameraModel.id).label('count')
+    ).group_by(SurveillanceCameraModel.camera_type).all()
+
+    # By operator
+    operator_counts = db.query(
+        SurveillanceCameraModel.operator,
+        func.count(SurveillanceCameraModel.id).label('count')
+    ).filter(SurveillanceCameraModel.operator.isnot(None)).group_by(
+        SurveillanceCameraModel.operator
+    ).order_by(func.count(SurveillanceCameraModel.id).desc()).limit(20).all()
+
+    # By state
+    state_counts = db.query(
+        SurveillanceCameraModel.state,
+        func.count(SurveillanceCameraModel.id).label('count')
+    ).filter(SurveillanceCameraModel.state.isnot(None)).group_by(
+        SurveillanceCameraModel.state
+    ).all()
+
+    return {
+        "total_cameras": total,
+        "by_type": {t: c for t, c in type_counts if t},
+        "by_operator": {o: c for o, c in operator_counts if o},
+        "by_state": {s: c for s, c in state_counts if s}
+    }
 
 
 @router.get("/{poi_id}", response_model=POI)

@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 import shutil
 from typing import Optional
+from pydantic import BaseModel
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
@@ -12,6 +13,17 @@ from ..models.user import User as UserModel
 from .auth import get_current_user
 
 router = APIRouter()
+
+
+# API Key models
+class APIKeyUpdate(BaseModel):
+    api_key: str
+
+
+class APIKeyStatus(BaseModel):
+    configured: bool
+    service: str
+    last_updated: Optional[datetime] = None
 
 # SSL certificate paths
 SSL_DIR = Path(__file__).parent.parent.parent / "ssl"
@@ -302,3 +314,124 @@ def delete_ssl_certificate(current_user: UserModel = Depends(require_admin)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete certificate: {str(e)}"
         )
+
+
+# API Key Management Endpoints
+# These endpoints manage external service API keys stored in user preferences
+
+@router.get("/api-keys/{service}")
+def get_api_key_status(
+    service: str,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Get API key status for a service (does not return the actual key)"""
+    valid_services = ['eia', 'harvest-hosts', 'google-maps', 'openweather']
+
+    if service not in valid_services:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown service: {service}. Valid services: {', '.join(valid_services)}"
+        )
+
+    # Get from user preferences
+    prefs = current_user.preferences or {}
+    api_keys = prefs.get('api_keys', {})
+    key_info = api_keys.get(service, {})
+
+    return {
+        "service": service,
+        "configured": bool(key_info.get('key')),
+        "last_updated": key_info.get('updated_at'),
+        "masked_key": f"***{key_info.get('key', '')[-4:]}" if key_info.get('key') else None
+    }
+
+
+@router.put("/api-keys/{service}")
+def update_api_key(
+    service: str,
+    key_data: APIKeyUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Update API key for a service"""
+    valid_services = ['eia', 'harvest-hosts', 'google-maps', 'openweather']
+
+    if service not in valid_services:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown service: {service}. Valid services: {', '.join(valid_services)}"
+        )
+
+    # Update user preferences
+    prefs = current_user.preferences or {}
+    if 'api_keys' not in prefs:
+        prefs['api_keys'] = {}
+
+    prefs['api_keys'][service] = {
+        'key': key_data.api_key,
+        'updated_at': datetime.utcnow().isoformat()
+    }
+
+    current_user.preferences = prefs
+    db.commit()
+
+    return {
+        "service": service,
+        "message": "API key updated successfully",
+        "configured": True
+    }
+
+
+@router.delete("/api-keys/{service}")
+def delete_api_key(
+    service: str,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Delete API key for a service"""
+    valid_services = ['eia', 'harvest-hosts', 'google-maps', 'openweather']
+
+    if service not in valid_services:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown service: {service}. Valid services: {', '.join(valid_services)}"
+        )
+
+    # Update user preferences
+    prefs = current_user.preferences or {}
+    api_keys = prefs.get('api_keys', {})
+
+    if service in api_keys:
+        del api_keys[service]
+        prefs['api_keys'] = api_keys
+        current_user.preferences = prefs
+        db.commit()
+
+    return {
+        "service": service,
+        "message": "API key deleted successfully",
+        "configured": False
+    }
+
+
+@router.get("/api-keys")
+def get_all_api_key_statuses(
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Get status of all API keys"""
+    valid_services = ['eia', 'harvest-hosts', 'google-maps', 'openweather']
+
+    prefs = current_user.preferences or {}
+    api_keys = prefs.get('api_keys', {})
+
+    statuses = {}
+    for service in valid_services:
+        key_info = api_keys.get(service, {})
+        statuses[service] = {
+            "configured": bool(key_info.get('key')),
+            "last_updated": key_info.get('updated_at')
+        }
+
+    return statuses

@@ -20,7 +20,8 @@ from ..services.weather_service import (
     update_trip_stop_forecasts,
     update_user_location_forecast,
     get_latest_user_location_forecast,
-    get_forecast_history
+    get_forecast_history,
+    get_ip_location
 )
 
 router = APIRouter()
@@ -220,3 +221,23 @@ async def cache_stats(
     Get forecast cache statistics.
     """
     return get_cache_stats()
+
+
+@router.get("/ip-location")
+async def ip_location(
+    current_user: UserModel = Depends(get_current_user)
+):
+    """
+    Get approximate location from user's IP address.
+    Returns lat/lon if available, or null if not.
+    """
+    location = await get_ip_location()
+    if location is None:
+        return {
+            "available": False,
+            "message": "IP geolocation not available"
+        }
+    return {
+        "available": True,
+        "location": location
+    }

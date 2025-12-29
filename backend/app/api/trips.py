@@ -760,12 +760,15 @@ def analyze_trip_gaps(
     # Get driver's preferences for daily driving limit
     # Priority: driver's preferences > trip owner's preferences > default
     driver = None
-    if trip.driver_id:
+    if hasattr(trip, 'driver_id') and trip.driver_id:
         driver = db.query(UserModel).filter(UserModel.id == trip.driver_id).first()
-    if not driver:
+    if not driver and trip.user:
         driver = trip.user  # Fall back to trip owner
 
-    driver_prefs = driver.preferences or {} if driver else {}
+    # Safely get preferences with defaults
+    driver_prefs = {}
+    if driver and hasattr(driver, 'preferences') and driver.preferences:
+        driver_prefs = driver.preferences
     max_daily_miles = driver_prefs.get('daily_miles_target', 300)
     max_driving_hours = driver_prefs.get('max_driving_hours', 8.0)
 

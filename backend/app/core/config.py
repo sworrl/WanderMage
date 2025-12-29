@@ -6,9 +6,10 @@ class Settings(BaseSettings):
     APP_NAME: str = "WanderMage"
     DEBUG: bool = True
 
-    # Database
+    # Database - 3 Database Architecture
     DATABASE_URL: str
-    POI_DATABASE_URL: str = ""  # Optional separate POI database
+    POI_DATABASE_URL: str = ""  # POI database (campgrounds, fuel stations, etc.)
+    ROAD_DATABASE_URL: str = ""  # Road hazards database (overpass heights, railroad crossings)
 
     # Security
     SECRET_KEY: str

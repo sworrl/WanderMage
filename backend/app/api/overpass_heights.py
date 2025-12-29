@@ -10,7 +10,7 @@ from typing import List, Optional
 from geoalchemy2.functions import ST_DWithin, ST_MakePoint
 from geoalchemy2 import WKTElement
 
-from ..core.database import get_poi_db
+from ..core.database import get_road_db
 from ..models.poi_sources import OverpassPOI
 from ..models.poi import OverpassHeight as OverpassHeightModel
 
@@ -64,7 +64,7 @@ def search_overpass_heights_by_bbox(
     limit: int = Query(10000, le=50000, description="Maximum results"),
     include_unverified: bool = Query(False, description="Include records with no name/road context"),
     include_parking: bool = Query(True, description="Include parking garage heights"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get all overpass/bridge heights within a bounding box.
@@ -162,7 +162,7 @@ def get_heights_along_route(
     buffer_miles: float = Query(3.0, le=10.0, description="Buffer distance from route in miles"),
     include_parking: bool = Query(True, description="Include parking garage heights"),
     limit: int = Query(5000, le=25000, description="Maximum results"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get all overpass/bridge heights along a route.
@@ -304,7 +304,7 @@ def check_route_clearances(
     waypoints: str = Query(..., description="Comma-separated lat,lon pairs"),
     buffer_miles: float = Query(0.5, description="Buffer distance in miles"),
     min_height: float = Query(13.5, description="Minimum clearance needed in feet"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Check for low clearances along a route.

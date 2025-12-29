@@ -41,8 +41,28 @@ poi_engine = create_engine(
 
 POISessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=poi_engine)
 
+# Road Hazards Database engine (overpass heights, railroad crossings, weight restrictions)
+road_database_url = settings.ROAD_DATABASE_URL or settings.DATABASE_URL
+road_engine = create_engine(
+    road_database_url,
+    poolclass=QueuePool,
+    pool_size=3,  # Smaller pool for road data (less frequent access)
+    max_overflow=5,
+    pool_timeout=30,
+    pool_recycle=3600,
+    pool_pre_ping=True,
+    echo=settings.DEBUG,
+    connect_args={
+        "options": "-c timezone=utc",
+        "connect_timeout": 10,
+    }
+)
+
+RoadSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=road_engine)
+
 Base = declarative_base()
 POIBase = declarative_base()  # Separate base for POI models
+RoadBase = declarative_base()  # Separate base for road hazard models
 
 
 def get_db():
@@ -67,6 +87,21 @@ def get_poi_db():
     Connects to the separate POI database.
     """
     db = POISessionLocal()
+    try:
+        yield db
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
+
+
+def get_road_db():
+    """
+    Dependency for road hazard database operations.
+    Connects to the separate road hazards database (overpass heights, railroad crossings, etc.).
+    """
+    db = RoadSessionLocal()
     try:
         yield db
     except Exception as e:

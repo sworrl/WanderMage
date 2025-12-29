@@ -10,7 +10,7 @@ from typing import List, Optional
 from geoalchemy2.functions import ST_DWithin
 from geoalchemy2 import WKTElement
 
-from ..core.database import get_poi_db
+from ..core.database import get_road_db
 from ..models.poi import RailroadCrossing as RailroadCrossingModel
 
 router = APIRouter()
@@ -23,7 +23,7 @@ def search_railroad_crossings_by_bbox(
     north: float = Query(..., description="Northern latitude"),
     east: float = Query(..., description="Eastern longitude"),
     limit: int = Query(10000, le=50000, description="Maximum results"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get all railroad crossings within a bounding box.
@@ -82,7 +82,7 @@ def get_crossings_along_route(
     route_coords: str = Query(..., description="JSON array of [lat,lon] coordinate pairs"),
     buffer_miles: float = Query(3.0, le=10.0, description="Buffer distance from route in miles"),
     limit: int = Query(5000, le=25000, description="Maximum results"),
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get all railroad crossings along a route.
@@ -205,7 +205,7 @@ def get_crossings_along_route(
 @router.post("/route-search")
 def search_crossings_along_route_post(
     request: dict,
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     POST endpoint for searching railroad crossings along a route.
@@ -324,7 +324,7 @@ def search_crossings_along_route_post(
 
 @router.get("/stats")
 def get_railroad_crossing_stats(
-    db: Session = Depends(get_poi_db)
+    db: Session = Depends(get_road_db)
 ):
     """
     Get statistics about railroad crossings in the database.

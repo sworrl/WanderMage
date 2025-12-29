@@ -17,6 +17,10 @@ class StateVisit(Base):
     # Number of times visited
     visit_count = Column(Integer, default=1, nullable=False)
 
+    # Break down by type: nightly stops (1-2 nights) vs monthly stays (extended stays)
+    nightly_stops = Column(Integer, default=0, nullable=False)
+    monthly_stays = Column(Integer, default=0, nullable=False)
+
     # First and last visit dates
     first_visit = Column(DateTime(timezone=True))
     last_visit = Column(DateTime(timezone=True))

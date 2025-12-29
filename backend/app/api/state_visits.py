@@ -38,6 +38,8 @@ def create_state_visit(
     if existing:
         # Update existing visit
         existing.visit_count = state_visit.visit_count
+        existing.nightly_stops = state_visit.nightly_stops
+        existing.monthly_stays = state_visit.monthly_stays
         if state_visit.first_visit:
             existing.first_visit = state_visit.first_visit
         if state_visit.last_visit:
@@ -52,6 +54,8 @@ def create_state_visit(
         state_code=state_visit.state_code.upper(),
         state_name=state_visit.state_name,
         visit_count=state_visit.visit_count,
+        nightly_stops=state_visit.nightly_stops,
+        monthly_stays=state_visit.monthly_stays,
         first_visit=state_visit.first_visit,
         last_visit=state_visit.last_visit
     )
@@ -97,6 +101,10 @@ def update_state_visit(
 
     if state_visit_update.visit_count is not None:
         state_visit.visit_count = state_visit_update.visit_count
+    if state_visit_update.nightly_stops is not None:
+        state_visit.nightly_stops = state_visit_update.nightly_stops
+    if state_visit_update.monthly_stays is not None:
+        state_visit.monthly_stays = state_visit_update.monthly_stays
     if state_visit_update.first_visit is not None:
         state_visit.first_visit = state_visit_update.first_visit
     if state_visit_update.last_visit is not None:

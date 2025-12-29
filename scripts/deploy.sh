@@ -212,9 +212,12 @@ echo -e "${YELLOW}Step 3: Copying backend files...${NC}"
 cp -r "$SRC_DIR/backend/app" $BACKEND_DIR/
 cp -r "$SRC_DIR/backend/database" $BACKEND_DIR/
 cp "$SRC_DIR/backend/requirements.txt" $BACKEND_DIR/
-if [ -f "$SRC_DIR/backend/.env" ]; then
+# Handle .env file - preserve existing if present
+if [ -f "$BACKEND_DIR/.env" ]; then
+    echo "  Existing .env file preserved (not overwritten)"
+elif [ -f "$SRC_DIR/backend/.env" ]; then
     cp "$SRC_DIR/backend/.env" $BACKEND_DIR/
-    echo "  .env file copied"
+    echo "  .env file copied from source"
 else
     echo -e "  ${YELLOW}WARNING: .env not found - you'll need to create it manually${NC}"
     echo "  Copy backend/.env.example to $BACKEND_DIR/.env and configure it"
@@ -401,6 +404,31 @@ server {
         try_files \$uri \$uri/ /index.html;
     }
 
+    # API Documentation (Swagger/ReDoc)
+    location /api/docs {
+        proxy_pass http://127.0.0.1:8000/docs;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /api/redoc {
+        proxy_pass http://127.0.0.1:8000/redoc;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
+    location /api/openapi.json {
+        proxy_pass http://127.0.0.1:8000/openapi.json;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
     # Backend API
     location /api {
         proxy_pass http://127.0.0.1:8000;
@@ -421,6 +449,9 @@ EOF
 
 # Enable the site (for Debian-style nginx)
 if [ -d "/etc/nginx/sites-enabled" ]; then
+    # Remove any old config (without .conf extension) to avoid duplicates
+    rm -f $NGINX_ENABLED/wandermage 2>/dev/null || true
+    rm -f $NGINX_SITES/wandermage 2>/dev/null || true
     ln -sf $NGINX_SITES/wandermage.conf $NGINX_ENABLED/wandermage.conf
 fi
 

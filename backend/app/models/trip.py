@@ -11,6 +11,7 @@ class Trip(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     rv_profile_id = Column(Integer, ForeignKey("rv_profiles.id"))
+    driver_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Optional different driver
 
     name = Column(String, nullable=False)
     description = Column(Text)
@@ -33,10 +34,12 @@ class Trip(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     # Relationships
-    user = relationship("User", back_populates="trips")
+    user = relationship("User", back_populates="trips", foreign_keys=[user_id])
+    driver = relationship("User", foreign_keys=[driver_id])
     rv_profile = relationship("RVProfile")
     stops = relationship("TripStop", back_populates="trip", cascade="all, delete-orphan", order_by="TripStop.stop_order")
     route_notes = relationship("RouteNote", back_populates="trip", cascade="all, delete-orphan")
+    gap_suggestions = relationship("GapSuggestion", back_populates="trip", cascade="all, delete-orphan")
     harvest_host_stays = relationship("HarvestHostStay", back_populates="trip")
 
 
@@ -114,3 +117,30 @@ class RouteNote(Base):
     # Relationships
     trip = relationship("Trip", back_populates="route_notes")
     overpass_height = relationship("OverpassHeight")
+
+
+class GapSuggestion(Base):
+    __tablename__ = "gap_suggestions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
+
+    position_after_stop = Column(Integer, nullable=False)
+
+    # Suggested location
+    latitude = Column(Float)
+    longitude = Column(Float)
+    radius_miles = Column(Float, default=30.0)
+
+    # Timing
+    estimated_date = Column(DateTime(timezone=True))
+    day_number = Column(Integer)
+
+    # Distance context
+    distance_from_previous_miles = Column(Float)
+    state = Column(String)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    trip = relationship("Trip", back_populates="gap_suggestions")

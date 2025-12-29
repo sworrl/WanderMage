@@ -54,3 +54,33 @@ class OverpassHeight(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SurveillanceCamera(BaseModel):
+    id: int
+    serial: Optional[str] = None
+    name: Optional[str] = None
+    latitude: float
+    longitude: float
+    camera_type: Optional[str] = None
+    camera_mount: Optional[str] = None
+    camera_direction: Optional[float] = None
+    surveillance_type: Optional[str] = None
+    surveillance_zone: Optional[str] = None
+    operator: Optional[str] = None
+    operator_type: Optional[str] = None
+    network_id: Optional[str] = None
+    networks_shared: int = 0
+    state: Optional[str] = None
+    city: Optional[str] = None
+    source: Optional[str] = None
+    source_ref: Optional[str] = None
+    verified: bool = False
+    check_date: Optional[datetime] = None
+    image_url: Optional[str] = None
+    website: Optional[str] = None
+    shodan_url: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

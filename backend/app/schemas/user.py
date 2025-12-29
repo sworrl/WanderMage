@@ -22,6 +22,7 @@ class User(UserBase):
     id: int
     is_active: bool
     is_admin: bool
+    role: Optional[str] = "user"
     created_at: datetime
 
     class Config:
