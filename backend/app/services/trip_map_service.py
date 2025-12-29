@@ -182,10 +182,30 @@ def _get_osm_static_map(
 ) -> Optional[bytes]:
     """
     Generate map using OSM-based static map service.
-
-    Uses staticmap.openstreetmap.de or similar.
+    Falls back to SVG placeholder if external service unavailable.
     """
-    # Build markers for each stop
+    # Try multiple static map services
+    services = [
+        # Primary: staticmap.openstreetmap.de
+        lambda: _try_osm_de_map(stops, width, height),
+        # Fallback: Generate SVG placeholder
+        lambda: _generate_svg_placeholder(stops, width, height),
+    ]
+
+    for service in services:
+        try:
+            result = service()
+            if result:
+                return result
+        except Exception as e:
+            logger.warning(f"Static map service failed: {e}")
+            continue
+
+    return None
+
+
+def _try_osm_de_map(stops: List[Dict[str, Any]], width: int, height: int) -> Optional[bytes]:
+    """Try OSM.de static map service."""
     markers_str = ""
     for i, stop in enumerate(stops):
         lat = stop["latitude"]
@@ -194,7 +214,6 @@ def _get_osm_static_map(
 
     markers_str = markers_str.rstrip("|")
 
-    # OSM Static Map API
     url = (
         f"https://staticmap.openstreetmap.de/staticmap.php"
         f"?center={stops[len(stops)//2]['latitude']},{stops[len(stops)//2]['longitude']}"
@@ -203,14 +222,111 @@ def _get_osm_static_map(
         f"&markers={markers_str}"
     )
 
-    try:
-        with httpx.Client(timeout=30.0, follow_redirects=True) as client:
-            response = client.get(url)
-            response.raise_for_status()
-            return response.content
-    except Exception as e:
-        logger.error(f"OSM static map generation failed: {e}")
+    with httpx.Client(timeout=15.0, follow_redirects=True) as client:
+        response = client.get(url)
+        response.raise_for_status()
+        return response.content
+
+
+def _generate_svg_placeholder(stops: List[Dict[str, Any]], width: int, height: int) -> bytes:
+    """Generate an SVG map showing the actual driving route."""
+    if not stops:
         return None
+
+    # Try to get actual route geometry from OSRM
+    route_coords = None
+    try:
+        from .trip_planning_service import get_route_geometry_sync
+        waypoints = [(s["latitude"], s["longitude"]) for s in stops]
+        route_coords = get_route_geometry_sync(waypoints)
+        logger.info(f"Got {len(route_coords)} route points from OSRM")
+    except Exception as e:
+        logger.warning(f"Failed to get route geometry: {e}")
+
+    # Use route coords if available, otherwise fall back to stops
+    if route_coords and len(route_coords) > 2:
+        all_lats = [c[0] for c in route_coords]
+        all_lons = [c[1] for c in route_coords]
+    else:
+        all_lats = [s["latitude"] for s in stops]
+        all_lons = [s["longitude"] for s in stops]
+
+    # Calculate bounding box
+    min_lat, max_lat = min(all_lats), max(all_lats)
+    min_lon, max_lon = min(all_lons), max(all_lons)
+
+    # Add padding
+    lat_range = max(max_lat - min_lat, 0.1)
+    lon_range = max(max_lon - min_lon, 0.1)
+    min_lat -= lat_range * 0.1
+    max_lat += lat_range * 0.1
+    min_lon -= lon_range * 0.1
+    max_lon += lon_range * 0.1
+
+    # Scale coordinates to SVG space
+    def scale_x(lon):
+        return int(((lon - min_lon) / (max_lon - min_lon)) * (width - 40) + 20)
+
+    def scale_y(lat):
+        return int(((max_lat - lat) / (max_lat - min_lat)) * (height - 40) + 20)
+
+    # Build SVG
+    svg_parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
+        f'<rect width="{width}" height="{height}" fill="#1a1a2e"/>',
+        '<defs>',
+        '<linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">',
+        '<stop offset="0%" style="stop-color:#22c55e"/>',
+        '<stop offset="100%" style="stop-color:#ef4444"/>',
+        '</linearGradient>',
+        '</defs>',
+    ]
+
+    # Draw route line using actual route geometry
+    if route_coords and len(route_coords) >= 2:
+        # Sample points to avoid huge SVG
+        if len(route_coords) > 200:
+            step = len(route_coords) // 200
+            sampled = route_coords[::step]
+            if sampled[-1] != route_coords[-1]:
+                sampled.append(route_coords[-1])
+            route_coords = sampled
+
+        points = " ".join([f"{scale_x(c[1])},{scale_y(c[0])}" for c in route_coords])
+        svg_parts.append(f'<polyline points="{points}" fill="none" stroke="url(#routeGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
+    elif len(stops) >= 2:
+        # Fallback to straight lines
+        points = " ".join([f"{scale_x(s['longitude'])},{scale_y(s['latitude'])}" for s in stops])
+        svg_parts.append(f'<polyline points="{points}" fill="none" stroke="url(#routeGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
+
+    # Draw stop markers
+    for i, stop in enumerate(stops):
+        x = scale_x(stop["longitude"])
+        y = scale_y(stop["latitude"])
+
+        if i == 0:
+            color = "#22c55e"  # Green for start
+        elif i == len(stops) - 1:
+            color = "#ef4444"  # Red for end
+        else:
+            color = "#3b82f6"  # Blue for waypoints
+
+        svg_parts.append(f'<circle cx="{x}" cy="{y}" r="8" fill="{color}" stroke="white" stroke-width="2"/>')
+        svg_parts.append(f'<text x="{x}" y="{y + 4}" text-anchor="middle" fill="white" font-size="10" font-weight="bold">{i + 1}</text>')
+
+    # Add title
+    svg_parts.append(f'<text x="{width // 2}" y="{height - 10}" text-anchor="middle" fill="#666" font-size="12">{len(stops)} stops</text>')
+    svg_parts.append('</svg>')
+
+    svg_content = "\n".join(svg_parts)
+
+    # Convert SVG to PNG using cairosvg if available, otherwise return SVG
+    try:
+        import cairosvg
+        return cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), output_width=width, output_height=height)
+    except ImportError:
+        # cairosvg not available, save as SVG (browsers will still display it)
+        return svg_content.encode('utf-8')
 
 
 def delete_trip_map(trip_id: int) -> bool:

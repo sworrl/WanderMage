@@ -747,6 +747,136 @@ def search_surveillance_cameras(
         )
 
 
+@router.get("/cameras/along-route")
+def get_cameras_along_route(
+    route_coords: str = Query(..., description="JSON array of [lat,lon] coordinate pairs"),
+    buffer_miles: float = Query(0.1, le=5.0, description="Buffer distance from route in miles"),
+    camera_type: Optional[str] = Query(None, description="Filter by camera type"),
+    limit: int = Query(5000, le=10000, description="Maximum results"),
+    db: Session = Depends(get_poi_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """Find surveillance cameras along a route (within buffer distance)"""
+    import json
+    import math
+
+    # Parse route coordinates
+    try:
+        coords = json.loads(route_coords)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid route_coords JSON")
+
+    if not coords or len(coords) < 2:
+        return {"count": 0, "cameras": [], "total_cameras": 0, "route_distance_miles": 0}
+
+    # Sample route points for efficiency on long routes
+    sampled_coords = [coords[0]]
+    last_lat, last_lon = coords[0]
+
+    for coord in coords[1:]:
+        lat, lon = coord
+        dlat = abs(lat - last_lat)
+        dlon = abs(lon - last_lon)
+        dist = math.sqrt((dlat * 69) ** 2 + (dlon * 55) ** 2)
+        if dist >= 0.5:  # Sample every ~0.5 miles
+            sampled_coords.append(coord)
+            last_lat, last_lon = coord
+
+    if sampled_coords[-1] != coords[-1]:
+        sampled_coords.append(coords[-1])
+
+    # Calculate route distance
+    total_distance = 0
+    for i in range(len(coords) - 1):
+        dlat = (coords[i + 1][0] - coords[i][0]) * 69
+        dlon = (coords[i + 1][1] - coords[i][1]) * 55
+        total_distance += math.sqrt(dlat ** 2 + dlon ** 2)
+
+    # Get bounding box with buffer
+    lats = [c[0] for c in coords]
+    lons = [c[1] for c in coords]
+
+    lat_buffer = buffer_miles / 69.0
+    lon_buffer = buffer_miles / 55.0
+
+    south = min(lats) - lat_buffer
+    north = max(lats) + lat_buffer
+    west = min(lons) - lon_buffer
+    east = max(lons) + lon_buffer
+
+    # Query cameras in bounding box
+    query = db.query(SurveillanceCameraModel).filter(
+        SurveillanceCameraModel.latitude >= south,
+        SurveillanceCameraModel.latitude <= north,
+        SurveillanceCameraModel.longitude >= west,
+        SurveillanceCameraModel.longitude <= east
+    )
+
+    if camera_type:
+        query = query.filter(SurveillanceCameraModel.camera_type == camera_type)
+
+    all_cameras = query.all()
+
+    # Distance from point to line segment
+    def point_to_segment_distance(px, py, x1, y1, x2, y2):
+        dx = x2 - x1
+        dy = y2 - y1
+        if dx == 0 and dy == 0:
+            return math.sqrt((px - x1) ** 2 + (py - y1) ** 2)
+
+        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)))
+        proj_x = x1 + t * dx
+        proj_y = y1 + t * dy
+
+        dlat = abs(px - proj_x) * 69
+        dlon = abs(py - proj_y) * 55
+        return math.sqrt(dlat ** 2 + dlon ** 2)
+
+    # Filter cameras within buffer distance of route
+    filtered_cameras = []
+    for camera in all_cameras:
+        min_dist = float('inf')
+        for i in range(len(sampled_coords) - 1):
+            dist = point_to_segment_distance(
+                camera.latitude, camera.longitude,
+                sampled_coords[i][0], sampled_coords[i][1],
+                sampled_coords[i + 1][0], sampled_coords[i + 1][1]
+            )
+            min_dist = min(min_dist, dist)
+            if min_dist <= buffer_miles:
+                break
+
+        if min_dist <= buffer_miles:
+            filtered_cameras.append({
+                "id": camera.id,
+                "latitude": camera.latitude,
+                "longitude": camera.longitude,
+                "camera_type": camera.camera_type,
+                "operator": camera.operator,
+                "city": camera.city,
+                "state": camera.state,
+                "source": camera.source,
+                "distance_from_route": round(min_dist, 3)
+            })
+
+    # Sort by distance and limit
+    filtered_cameras.sort(key=lambda c: c["distance_from_route"])
+    if len(filtered_cameras) > limit:
+        filtered_cameras = filtered_cameras[:limit]
+
+    # Calculate cameras per mile
+    cameras_per_mile = round(len(filtered_cameras) / total_distance, 2) if total_distance > 0 else 0
+
+    return {
+        "count": len(filtered_cameras),
+        "cameras": filtered_cameras,
+        "total_cameras": len(filtered_cameras),
+        "route_distance_miles": round(total_distance, 1),
+        "cameras_per_mile": cameras_per_mile,
+        "route_points_sampled": len(sampled_coords)
+    }
+
+
 @router.get("/cameras/stats")
 def get_camera_stats(
     db: Session = Depends(get_poi_db),

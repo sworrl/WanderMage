@@ -14,7 +14,7 @@ from ..schemas.trip import Trip, TripCreate, TripUpdate, TripStop, TripStopCreat
 from .auth import get_current_user
 from ..services.trip_planning_service import plan_trip_route, get_route_geometry_sync, get_layered_isochrones, get_route_distance, get_route_preferences
 import asyncio
-from ..services.trip_map_service import generate_trip_map, delete_trip_map
+from ..services.trip_map_service import generate_trip_map, delete_trip_map, get_trip_map_url
 from ..services.stop_categorizer import detect_category, get_category_icon, get_category_color
 
 router = APIRouter()
@@ -186,10 +186,61 @@ def get_trips(
     query = db.query(TripModel).filter(TripModel.user_id == current_user.id)
 
     if status:
-        query = query.filter(TripModel.status == status)
+        # Handle legacy "planned" filter to include both planning and planned
+        if status == 'planned':
+            query = query.filter(TripModel.status.in_(['planning', 'planned']))
+        else:
+            query = query.filter(TripModel.status == status)
 
     trips = query.offset(skip).limit(limit).all()
+
+    # Compute status for each trip in planning/planned state
+    updated = False
+    for trip in trips:
+        if trip.status in ['planning', 'planned', None]:
+            new_status, new_detail = compute_trip_status(trip, db)
+            if trip.status != new_status or trip.status_detail != new_detail:
+                trip.status = new_status
+                trip.status_detail = new_detail
+                updated = True
+
+    if updated:
+        db.commit()
+
     return trips
+
+
+def compute_trip_status(trip, db) -> tuple:
+    """
+    Compute the trip status and status_detail based on stops and gaps.
+    Returns (status, status_detail) tuple.
+    """
+    stops_count = len(trip.stops)
+    gaps_count = len(trip.gap_suggestions) if trip.gap_suggestions else 0
+
+    # Check if trip is in progress or completed (user-set statuses)
+    if trip.status in ['in_progress', 'completed', 'cancelled']:
+        return (trip.status, trip.status_detail)
+
+    # Compute status based on trip state
+    if stops_count == 0:
+        return ('planning', 'No stops added yet')
+    elif stops_count == 1:
+        return ('planning', 'Add destination to complete route')
+    elif gaps_count > 0:
+        # Count overnight gaps vs total gaps
+        overnight_gaps = gaps_count
+        if overnight_gaps == 1:
+            return ('planning', f'{overnight_gaps} overnight stop still needed')
+        else:
+            return ('planning', f'{overnight_gaps} overnight stops still needed')
+    else:
+        # No gaps - trip is fully planned
+        overnight_count = sum(1 for s in trip.stops if s.is_overnight)
+        if overnight_count > 0:
+            return ('planned', f'Ready - {overnight_count} overnight stops planned')
+        else:
+            return ('planned', f'Ready - {stops_count} stops planned')
 
 
 @router.get("/{trip_id}", response_model=Trip)
@@ -206,6 +257,37 @@ def get_trip(
 
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
+
+    # Compute and update status if in planning/planned state
+    if trip.status in ['planning', 'planned', None]:
+        new_status, new_detail = compute_trip_status(trip, db)
+        if trip.status != new_status or trip.status_detail != new_detail:
+            trip.status = new_status
+            trip.status_detail = new_detail
+            db.commit()
+            db.refresh(trip)
+
+    # Auto-generate map image if it doesn't exist and trip has enough stops
+    if not get_trip_map_url(trip_id) and len(trip.stops) >= 2:
+        try:
+            stops_for_map = [
+                {
+                    'latitude': s.latitude,
+                    'longitude': s.longitude,
+                    'stop_order': s.stop_order,
+                    'name': s.name,
+                    'category': s.category
+                }
+                for s in trip.stops
+            ]
+            image_url = generate_trip_map(trip.id, stops_for_map)
+            if image_url:
+                trip.image_url = image_url
+                db.commit()
+                db.refresh(trip)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to auto-generate map for trip {trip.id}: {e}")
 
     return trip
 
@@ -565,6 +647,37 @@ def plan_and_create_trip(
             arrival_datetime=plan_data.arrival_datetime
         )
 
+        # Calculate estimated fuel cost if RV profile provided
+        estimated_fuel_gallons = 0.0
+        estimated_fuel_cost = 0.0
+
+        if plan_data.rv_profile_id:
+            from ..models.rv_profile import RVProfile
+            from ..models.fuel_price import FuelPrice
+            from sqlalchemy import desc
+
+            rv_profile = db.query(RVProfile).filter(
+                RVProfile.id == plan_data.rv_profile_id,
+                RVProfile.user_id == current_user.id
+            ).first()
+
+            if rv_profile and rv_profile.avg_mpg and rv_profile.avg_mpg > 0:
+                estimated_fuel_gallons = result["total_distance_miles"] / rv_profile.avg_mpg
+
+                # Get fuel price (default to diesel for RVs)
+                fuel_grade = 'diesel' if rv_profile.fuel_type and 'diesel' in rv_profile.fuel_type.lower() else 'regular'
+                fuel_price = db.query(FuelPrice).filter(
+                    FuelPrice.region == 'US',
+                    FuelPrice.grade == fuel_grade
+                ).order_by(desc(FuelPrice.price_date)).first()
+
+                if fuel_price:
+                    estimated_fuel_cost = estimated_fuel_gallons * fuel_price.price_per_gallon
+                else:
+                    # Default fallback prices
+                    default_price = 3.50 if fuel_grade == 'diesel' else 3.20
+                    estimated_fuel_cost = estimated_fuel_gallons * default_price
+
         # Create the trip
         trip = TripModel(
             name=plan_data.name,
@@ -574,7 +687,9 @@ def plan_and_create_trip(
             start_date=plan_data.departure_datetime,
             end_date=result["estimated_arrival"],
             total_distance_miles=result["total_distance_miles"],
-            status="planned"
+            total_fuel_gallons=round(estimated_fuel_gallons, 2),
+            total_fuel_cost=round(estimated_fuel_cost, 2),
+            status="planning"
         )
         db.add(trip)
         db.flush()  # Get the trip ID
@@ -618,24 +733,22 @@ def plan_and_create_trip(
                 db.add(waypoint_stop)
                 stop_order += 1
 
-        # Add suggested overnight stops (only if no waypoints provided)
-        if not plan_data.waypoints:
-            for stop in result["suggested_stops"]:
-                point_wkt = f"POINT({stop['longitude']} {stop['latitude']})"
-                overnight_stop = TripStopModel(
+        # Save suggested overnight stops as gap_suggestions (NOT as actual stops)
+        # The route should only contain origin, user waypoints, and destination
+        # Gap suggestions are displayed along the route for user to choose from
+        if result.get("suggested_stops"):
+            for i, stop in enumerate(result["suggested_stops"]):
+                gap_suggestion = GapSuggestionModel(
                     trip_id=trip.id,
-                    stop_order=stop_order,
-                    name=stop["name"],
-                    city=stop.get("city"),
-                    state=stop.get("state"),
+                    position_after_stop=i + 1,  # Position after origin or previous suggestion
                     latitude=stop["latitude"],
                     longitude=stop["longitude"],
-                    location=WKTElement(point_wkt, srid=4326),
-                    is_overnight=True,
-                    notes=f"Suggested stop - {stop['miles_this_segment']:.0f} miles from previous"
+                    radius_miles=30.0,
+                    day_number=stop.get("day_number", i + 1),
+                    distance_from_previous_miles=stop.get("miles_this_segment", 0),
+                    state=stop.get("state"),
                 )
-                db.add(overnight_stop)
-                stop_order += 1
+                db.add(gap_suggestion)
 
         # Add destination as final stop
         dest_point = f"POINT({plan_data.destination.longitude} {plan_data.destination.latitude})"

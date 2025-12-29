@@ -144,13 +144,8 @@ async def update_user_location(
     Update weather forecast for user's current location.
     Stores in database for historical tracking.
     """
-    forecast = await update_user_location_forecast(
-        db,
-        current_user.id,
-        request.latitude,
-        request.longitude,
-        request.location_name
-    )
+    # Get forecast directly from NWS
+    forecast_data = await get_forecast(request.latitude, request.longitude)
 
     return {
         "user_id": current_user.id,
@@ -159,7 +154,7 @@ async def update_user_location(
             "lon": request.longitude,
             "name": request.location_name
         },
-        "forecast": forecast
+        "forecast": forecast_data  # Direct forecast object with location and forecast array
     }
 
 
@@ -234,10 +229,18 @@ async def ip_location(
     location = await get_ip_location()
     if location is None:
         return {
+            "success": False,
             "available": False,
             "message": "IP geolocation not available"
         }
     return {
+        "success": True,
         "available": True,
-        "location": location
+        "latitude": location.get("lat"),
+        "longitude": location.get("lon"),
+        "city": location.get("city"),
+        "region": location.get("region"),
+        "country": location.get("country"),
+        "timezone": location.get("timezone"),
+        "location": location  # Keep for backwards compatibility
     }

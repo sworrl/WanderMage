@@ -9,7 +9,7 @@ from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime
 
-from ..core.database import get_db
+from ..core.database import get_db, get_poi_db
 from .auth import get_current_user
 from ..models.user import User as UserModel
 from ..models.poi import POI
@@ -54,7 +54,7 @@ def require_admin(current_user: UserModel = Depends(get_current_user)):
 
 @router.get("/stats")
 def get_serialization_stats(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """Get statistics about serialized items in the database."""
@@ -126,7 +126,7 @@ def search_serialized_items(
     status: Optional[str] = Query(None, description="Filter by status: active, blacklisted, unverified"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """Search and list serialized items with pagination."""
@@ -202,7 +202,7 @@ def search_serialized_items(
 @router.get("/item/{serial}")
 def get_item_by_serial(
     serial: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """Get detailed information about a specific serialized item."""
@@ -248,7 +248,7 @@ def get_item_by_serial(
 def update_item_flags(
     serial: str,
     flags: ItemFlags,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """
@@ -283,7 +283,7 @@ def update_item_flags(
 
 @router.get("/categories")
 def get_categories(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """Get list of all categories with counts."""
@@ -300,7 +300,7 @@ def get_categories(
 
 @router.get("/states")
 def get_states(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """Get list of all states with counts."""
@@ -317,7 +317,7 @@ def get_states(
 
 @router.get("/brands")
 def get_brands(
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_poi_db),
     current_user: UserModel = Depends(require_admin)
 ):
     """Get list of all brands with counts."""

@@ -19,30 +19,15 @@ interface SerializedItem {
   google_maps_url: string | null
 }
 
-interface EntityStats {
-  total: number
-  missing_serials: number
-  active?: number
-  blacklisted?: number
-  verified?: number
-  by_type?: Record<string, number>
-  by_state?: Record<string, number>
-}
-
 interface SerializationStats {
-  grand_total: number
-  total_missing_serials: number
-  by_entity_type: {
-    pois: EntityStats
-    surveillance_cameras: EntityStats
-    railroad_crossings: EntityStats
-    overpass_heights: EntityStats
-  }
-  pois: {
-    by_category: Record<string, number>
-    by_state: Record<string, number>
-    by_brand: Record<string, number>
-  }
+  total_serialized: number
+  missing_serials: number
+  active: number
+  blacklisted: number
+  verified: number
+  by_category: Record<string, number>
+  by_state: Record<string, number>
+  by_brand: Record<string, number>
 }
 
 interface SearchResult {
@@ -229,55 +214,50 @@ export default function SerializationManager() {
       {/* Stats Overview */}
       {stats && (
         <>
-          {/* Grand Total */}
+          {/* Total Stats */}
           <div className="serial-stats">
             <div className="stat-card" style={{ flex: 2 }}>
-              <span className="stat-value">{stats.grand_total.toLocaleString()}</span>
-              <span className="stat-label">Total Serialized Items</span>
+              <span className="stat-value">{(stats.total_serialized ?? 0).toLocaleString()}</span>
+              <span className="stat-label">Total Serialized POIs</span>
             </div>
-            {stats.total_missing_serials > 0 && (
+            {(stats.missing_serials ?? 0) > 0 && (
               <div className="stat-card blacklisted">
-                <span className="stat-value">{stats.total_missing_serials.toLocaleString()}</span>
+                <span className="stat-value">{(stats.missing_serials ?? 0).toLocaleString()}</span>
                 <span className="stat-label">Missing Serials</span>
               </div>
             )}
           </div>
 
-          {/* By Entity Type */}
-          <div className="serial-stats" style={{ marginTop: '12px' }}>
-            <div className="stat-card">
-              <span className="stat-value">{stats.by_entity_type.pois.total.toLocaleString()}</span>
-              <span className="stat-label">POIs</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-value">{stats.by_entity_type.surveillance_cameras.total.toLocaleString()}</span>
-              <span className="stat-label">Cameras</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-value">{stats.by_entity_type.railroad_crossings.total.toLocaleString()}</span>
-              <span className="stat-label">RR Crossings</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-value">{stats.by_entity_type.overpass_heights.total.toLocaleString()}</span>
-              <span className="stat-label">Heights</span>
-            </div>
-          </div>
-
           {/* POI Status */}
           <div className="serial-stats" style={{ marginTop: '12px' }}>
             <div className="stat-card active">
-              <span className="stat-value">{(stats.by_entity_type.pois.active || 0).toLocaleString()}</span>
-              <span className="stat-label">Active POIs</span>
+              <span className="stat-value">{(stats.active ?? 0).toLocaleString()}</span>
+              <span className="stat-label">Active</span>
             </div>
             <div className="stat-card verified">
-              <span className="stat-value">{(stats.by_entity_type.pois.verified || 0).toLocaleString()}</span>
-              <span className="stat-label">Verified POIs</span>
+              <span className="stat-value">{(stats.verified ?? 0).toLocaleString()}</span>
+              <span className="stat-label">Verified</span>
             </div>
             <div className="stat-card blacklisted">
-              <span className="stat-value">{(stats.by_entity_type.pois.blacklisted || 0).toLocaleString()}</span>
-              <span className="stat-label">Blacklisted POIs</span>
+              <span className="stat-value">{(stats.blacklisted ?? 0).toLocaleString()}</span>
+              <span className="stat-label">Blacklisted</span>
             </div>
           </div>
+
+          {/* By Category - Top 5 */}
+          {stats.by_category && Object.keys(stats.by_category).length > 0 && (
+            <div className="serial-stats" style={{ marginTop: '12px' }}>
+              {Object.entries(stats.by_category)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([category, count]) => (
+                  <div key={category} className="stat-card">
+                    <span className="stat-value">{(count ?? 0).toLocaleString()}</span>
+                    <span className="stat-label">{category.replace(/_/g, ' ')}</span>
+                  </div>
+                ))}
+            </div>
+          )}
         </>
       )}
 
@@ -336,7 +316,7 @@ export default function SerializationManager() {
       {searchResults && (
         <div className="serial-results">
           <div className="results-header">
-            <span>{searchResults.total.toLocaleString()} items found</span>
+            <span>{(searchResults.total ?? 0).toLocaleString()} items found</span>
             <span>Page {searchResults.page} of {searchResults.total_pages}</span>
           </div>
 

@@ -20,7 +20,8 @@ class Trip(Base):
     end_date = Column(DateTime(timezone=True))
 
     # Status
-    status = Column(String, default="planned")  # planned, in_progress, completed, cancelled
+    status = Column(String, default="planning")  # planning, planned, in_progress, completed, cancelled
+    status_detail = Column(String, nullable=True)  # Verbose status message
 
     # Calculated fields (updated via triggers or application logic)
     total_distance_miles = Column(Float, default=0.0)

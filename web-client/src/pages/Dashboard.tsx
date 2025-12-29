@@ -1609,7 +1609,7 @@ export default function Dashboard() {
                           border: '1px solid var(--border-color)',
                           minHeight: '85px'
                         }}
-                        title={`${STATE_NAMES[stateCode]}: ${count.toLocaleString()} POIs`}
+                        title={`${STATE_NAMES[stateCode]}: ${(count ?? 0).toLocaleString()} POIs`}
                       >
                         {/* State SVG with speckle pattern */}
                         <div style={{ position: 'relative', width: '50px', height: '40px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -1817,18 +1817,18 @@ export default function Dashboard() {
             <>
               <div className="stat-card">
                 <h3>Total Crossings</h3>
-                <div className="stat-value">{railroadStats.total?.toLocaleString() || 0}</div>
+                <div className="stat-value">{(railroadStats.total ?? 0).toLocaleString()}</div>
               </div>
               <div className="stat-card">
                 <h3>With Gates</h3>
                 <div className="stat-value" style={{ color: '#10b981' }}>
-                  {railroadStats.with_gates?.toLocaleString() || 0}
+                  {(railroadStats.with_gates ?? 0).toLocaleString()}
                 </div>
               </div>
               <div className="stat-card">
                 <h3>With Lights/Bells</h3>
                 <div className="stat-value" style={{ color: '#f59e0b' }}>
-                  {railroadStats.with_lights?.toLocaleString() || 0}
+                  {(railroadStats.with_lights ?? 0).toLocaleString()}
                 </div>
               </div>
             </>
@@ -1854,7 +1854,7 @@ export default function Dashboard() {
                       <StateMiniSVG stateCode={state} size={24} />
                       {STATE_NAMES[state] || state}:
                     </span>
-                    <strong>{count.toLocaleString()}</strong>
+                    <strong>{(count ?? 0).toLocaleString()}</strong>
                   </div>
                 ))}
             </div>
