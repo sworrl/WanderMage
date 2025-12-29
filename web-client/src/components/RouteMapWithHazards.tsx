@@ -69,19 +69,70 @@ function extractRouteSegment(
   return route.slice(startIdx, endIdx + 1)
 }
 
-// Simplify a route segment by sampling every Nth point
-function simplifySegment(segment: [number, number][], maxPoints: number = 50): [number, number][] {
+// Douglas-Peucker algorithm for route simplification
+// Preserves road curvature better than uniform sampling
+function simplifySegmentDP(segment: [number, number][], epsilon: number = 0.0001): [number, number][] {
+  if (segment.length < 3) return segment
+
+  // Find the point with the maximum distance from the line between first and last points
+  let maxDist = 0
+  let maxIdx = 0
+  const start = segment[0]
+  const end = segment[segment.length - 1]
+
+  for (let i = 1; i < segment.length - 1; i++) {
+    const dist = perpendicularDistance(segment[i], start, end)
+    if (dist > maxDist) {
+      maxDist = dist
+      maxIdx = i
+    }
+  }
+
+  // If max distance is greater than epsilon, recursively simplify
+  if (maxDist > epsilon) {
+    const left = simplifySegmentDP(segment.slice(0, maxIdx + 1), epsilon)
+    const right = simplifySegmentDP(segment.slice(maxIdx), epsilon)
+    return [...left.slice(0, -1), ...right]
+  }
+
+  // Otherwise, return just start and end
+  return [start, end]
+}
+
+// Calculate perpendicular distance from point to line
+function perpendicularDistance(point: [number, number], lineStart: [number, number], lineEnd: [number, number]): number {
+  const dx = lineEnd[1] - lineStart[1]
+  const dy = lineEnd[0] - lineStart[0]
+
+  if (dx === 0 && dy === 0) {
+    return haversineDistance(point[0], point[1], lineStart[0], lineStart[1])
+  }
+
+  const t = Math.max(0, Math.min(1,
+    ((point[1] - lineStart[1]) * dx + (point[0] - lineStart[0]) * dy) / (dx * dx + dy * dy)
+  ))
+
+  const nearestLat = lineStart[0] + t * dy
+  const nearestLon = lineStart[1] + t * dx
+
+  return haversineDistance(point[0], point[1], nearestLat, nearestLon)
+}
+
+// Simplify a route segment - uses Douglas-Peucker for better curve preservation
+function simplifySegment(segment: [number, number][], maxPoints: number = 500): [number, number][] {
   if (segment.length <= maxPoints) return segment
-  const step = Math.ceil(segment.length / maxPoints)
-  const simplified: [number, number][] = []
-  for (let i = 0; i < segment.length; i += step) {
-    simplified.push(segment[i])
+
+  // Use Douglas-Peucker with adaptive epsilon based on target point count
+  // Start with small epsilon and increase until we get close to target
+  let epsilon = 0.00001
+  let result = simplifySegmentDP(segment, epsilon)
+
+  while (result.length > maxPoints && epsilon < 0.01) {
+    epsilon *= 2
+    result = simplifySegmentDP(segment, epsilon)
   }
-  // Always include the last point
-  if (simplified[simplified.length - 1] !== segment[segment.length - 1]) {
-    simplified.push(segment[segment.length - 1])
-  }
-  return simplified
+
+  return result
 }
 
 // Fix for default marker icons in React Leaflet
@@ -593,7 +644,8 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
 
               // Extract route segment: ~50 miles each direction from the center (1 hour driving window)
               const corridorDistance = 80467  // ~50 miles in meters
-              const segment = simplifySegment(extractRouteSegment(route, routeIdx, corridorDistance), 100)
+              // Use 500 points max with Douglas-Peucker for smooth road-following curves
+              const segment = simplifySegment(extractRouteSegment(route, routeIdx, corridorDistance), 500)
 
               return (
                 <React.Fragment key={stop.id}>

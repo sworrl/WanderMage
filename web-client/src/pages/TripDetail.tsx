@@ -780,7 +780,7 @@ export default function TripDetail() {
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                            {cameraAnalysis.first_camera.name || `${cameraAnalysis.first_camera.city}, ${cameraAnalysis.first_camera.state}`}
+                            {cameraAnalysis.first_camera.name || (cameraAnalysis.first_camera.city && cameraAnalysis.first_camera.state ? `${cameraAnalysis.first_camera.city}, ${cameraAnalysis.first_camera.state}` : `Camera at Mile ${cameraAnalysis.first_camera.route_mile}`)}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                             Mile {cameraAnalysis.first_camera.route_mile} ({cameraAnalysis.first_camera.route_percentage}% into trip)
@@ -805,7 +805,7 @@ export default function TripDetail() {
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '13px', fontWeight: 500 }}>
-                            {cameraAnalysis.last_camera.name || `${cameraAnalysis.last_camera.city}, ${cameraAnalysis.last_camera.state}`}
+                            {cameraAnalysis.last_camera.name || (cameraAnalysis.last_camera.city && cameraAnalysis.last_camera.state ? `${cameraAnalysis.last_camera.city}, ${cameraAnalysis.last_camera.state}` : `Camera at Mile ${cameraAnalysis.last_camera.route_mile}`)}
                           </div>
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                             Mile {cameraAnalysis.last_camera.route_mile} ({cameraAnalysis.last_camera.route_percentage}% into trip)

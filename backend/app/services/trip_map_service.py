@@ -12,16 +12,16 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Map image storage location
+# Map image storage location - use uploads directory for proper serving
 MAP_STORAGE_PATH = os.getenv(
     "MAP_STORAGE_PATH",
-    "/opt/wandermage/backend/static/maps"
+    "uploads/trip_maps"
 )
 
 # Base URL for serving map images
 MAP_BASE_URL = os.getenv(
     "MAP_BASE_URL",
-    "/static/maps"
+    "/uploads/trip_maps"
 )
 
 
