@@ -44,6 +44,12 @@
 - **Weather Overlay** - Current conditions at your location
 - **Holiday Effects** - Seasonal animations (snow, fireworks, hearts, etc.)
 
+<p align="center">
+  <img src="docs/Screenshot_20251228_212142.png" alt="Map View with RR Crossings, Cameras, and Height Restrictions" width="700"/>
+  <br />
+  <em>Map showing railroad crossings, surveillance cameras, and height restrictions</em>
+</p>
+
 ### Fuel Management
 - **Fuel Logging** - Track fill-ups with price, gallons, and odometer readings
 - **MPG Calculations** - Automatic fuel economy tracking per trip and overall

@@ -169,6 +169,39 @@ class POIScraperRunner(ScraperRunner):
             self.poi_db.close()
             self.poi_db = None
 
+    def normalize_state(self, raw_state: str, fallback_state: str) -> str:
+        """Normalize state code from OSM data (handles mixed case, full names, etc.)."""
+        if not raw_state:
+            return fallback_state
+
+        # Try uppercase 2-letter code first
+        upper = raw_state.upper().strip()
+        if upper in US_STATES:
+            return upper
+
+        # Map full names to codes
+        STATE_NAMES = {
+            'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR',
+            'CALIFORNIA': 'CA', 'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE',
+            'FLORIDA': 'FL', 'GEORGIA': 'GA', 'HAWAII': 'HI', 'IDAHO': 'ID',
+            'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA', 'KANSAS': 'KS',
+            'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+            'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS',
+            'MISSOURI': 'MO', 'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV',
+            'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ', 'NEW MEXICO': 'NM', 'NEW YORK': 'NY',
+            'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH', 'OKLAHOMA': 'OK',
+            'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+            'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT',
+            'VERMONT': 'VT', 'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV',
+            'WISCONSIN': 'WI', 'WYOMING': 'WY'
+        }
+
+        if upper in STATE_NAMES:
+            return STATE_NAMES[upper]
+
+        # Not a valid US state - use the scraper's state
+        return fallback_state
+
     async def query_overpass(self, query: str) -> Dict:
         """Execute an Overpass API query."""
         full_query = f"[out:json][timeout:60];({query});out body center tags;"
@@ -209,8 +242,11 @@ class POIScraperRunner(ScraperRunner):
         # Build address components
         street = tags.get('addr:street', '')
         city = tags.get('addr:city', '')
-        addr_state = tags.get('addr:state', state)
+        raw_addr_state = tags.get('addr:state', '')
         zip_code = tags.get('addr:postcode', '')
+
+        # Normalize state code - OSM data is inconsistent (mixed case, full names, etc.)
+        addr_state = self.normalize_state(raw_addr_state, state)
         full_address = tags.get('addr:full') or f"{street}, {city}, {addr_state} {zip_code}".strip(', ')
 
         # Build Google Maps URL - include coordinates for precision
