@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { safeStorage } from '../utils/storage';
+import ShaderBackground from '../components/ShaderBackground';
 import './Setup.css';
 
 export default function Setup() {
@@ -62,6 +63,7 @@ export default function Setup() {
 
   return (
     <div className="setup-container">
+      <ShaderBackground intensity={0.75} />
       <div className="setup-card">
         <div className="setup-header">
           <h1 className="setup-title">Welcome to WanderMage</h1>

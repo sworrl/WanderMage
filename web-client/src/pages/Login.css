@@ -1,71 +1,151 @@
 .login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
   background: var(--bg-primary);
   background-image: var(--theme-texture);
+  position: relative;
+  overflow: hidden;
 }
 
-.login-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 40px;
+/* The glass split card */
+.login-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 40px var(--shadow-lg);
+  max-width: 900px;
+  min-height: 540px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 30px 90px var(--shadow-lg);
+  background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+  backdrop-filter: blur(16px) saturate(125%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+}
+
+/* Left: brand + QR */
+.login-aside {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border-color);
+}
+
+.login-aside-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 44px 34px;
 }
 
 .login-logo {
   display: block;
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 20px;
-  border-radius: 16px;
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  margin: 0 auto 18px;
+  box-shadow: 0 10px 34px var(--shadow-lg);
 }
 
-.login-card h1 {
-  text-align: center;
+.login-brand {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin: 0 0 6px;
 }
 
-.subtitle {
-  text-align: center;
+.login-tagline {
   color: var(--text-secondary);
-  margin-bottom: 30px;
   font-size: 14px;
+  margin: 0 0 30px;
 }
 
-.login-card .btn {
+.login-qr {
+  display: inline-flex;
+  padding: 16px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg-primary) 60%, transparent);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.login-qr-hint {
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  margin-top: 16px;
+  letter-spacing: 0.02em;
+}
+
+/* Right: form */
+.login-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--card-bg) 68%, transparent);
+}
+
+.login-main-inner {
+  width: 100%;
+  max-width: 340px;
+  padding: 46px 38px;
+}
+
+.login-heading {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.login-sub {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0 0 26px;
+}
+
+.login-main .btn {
   width: 100%;
   margin-top: 10px;
 }
 
 .error-message {
   background-color: var(--accent-danger);
-  color: var(--text-primary);
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
   font-size: 14px;
   border: 1px solid var(--accent-danger-hover);
 }
 
-.demo-info {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.demo-info p {
-  margin: 5px 0;
-}
-
-.demo-info strong {
-  color: var(--text-primary);
+@media (max-width: 760px) {
+  .login-shell {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    min-height: 0;
+  }
+  .login-aside {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .login-aside-inner {
+    padding: 34px 24px 18px;
+  }
+  .login-qr {
+    transform: scale(0.92);
+  }
+  .login-main-inner {
+    padding: 32px 28px 40px;
+  }
 }

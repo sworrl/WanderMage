@@ -43,6 +43,7 @@
 - **Drive-Time Isochrones** - Visualize how far you can drive in 1, 2, or 3 hours
 - **Weather Overlay** - Current conditions at your location
 - **Holiday Effects** - Seasonal animations (snow, fireworks, hearts, etc.)
+- **Animated WebGL Backgrounds** - 130+ theme-aware shader effects (aurora, nebula, galaxy, and more)
 
 <p align="center">
   <img src="docs/Screenshot_20251228_212142.png" alt="Map View with RR Crossings, Cameras, and Height Restrictions" width="700"/>
@@ -103,9 +104,9 @@ WanderMage includes built-in scrapers to collect data for personal use:
 |-----------|------------|
 | **Backend** | FastAPI, Python 3.10+, SQLAlchemy, Pydantic |
 | **Database** | PostgreSQL 14+ with PostGIS extension |
-| **Web Client** | React 18, TypeScript, Vite, React Leaflet |
+| **Web Client** | React 19, TypeScript, Vite, React Leaflet, WebGL shader backgrounds |
 | **Mobile** | Android (Kotlin/Jetpack Compose) - *in development* |
-| **Auth** | JWT tokens with bcrypt password hashing |
+| **Auth** | JWT tokens with bcrypt password hashing, QR-split desktop/mobile sign-in |
 | **Maps** | Leaflet with OpenStreetMap, Satellite, and custom tiles |
 | **Reverse Proxy** | Nginx with SSL termination |
 

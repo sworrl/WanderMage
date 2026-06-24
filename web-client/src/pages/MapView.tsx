@@ -5,8 +5,8 @@ import MarkerClusterGroup from 'react-leaflet-cluster'
 import { trips as tripsApi, preferences as preferencesApi, rvProfiles as rvProfilesApi, weather as weatherApi } from '../services/api'
 import { safeStorage } from '../utils/storage'
 import 'leaflet/dist/leaflet.css'
-import 'react-leaflet-cluster/lib/assets/MarkerCluster.css'
-import 'react-leaflet-cluster/lib/assets/MarkerCluster.Default.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
+import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 import L from 'leaflet'
 
 const HolidayEffects = () => {

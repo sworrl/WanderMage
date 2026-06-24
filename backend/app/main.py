@@ -20,10 +20,10 @@ from .services.scheduler import start_scheduler, stop_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Start background scheduler
-    start_scheduler()
+    if __import__("os").environ.get("ENABLE_SCHEDULER","false").lower()=="true": start_scheduler()
     yield
     # Shutdown: Stop background scheduler
-    stop_scheduler()
+    if __import__("os").environ.get("ENABLE_SCHEDULER","false").lower()=="true": stop_scheduler()
 
 
 app = FastAPI(

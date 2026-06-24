@@ -6,6 +6,8 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  position: relative;
+  overflow: hidden;
 }
 
 .setup-card {
@@ -16,10 +18,12 @@
   padding: 40px;
   max-width: 500px;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .setup-header {
-  text-center;
+  text-align: center;
   margin-bottom: 32px;
 }
 
