@@ -310,8 +310,8 @@ export default function EngageTheMage() {
               </div>
 
               <div className="capability-card deep-search-card">
-                <h4>Deep Search Powers</h4>
-                <p>Enable <strong>Deep Search</strong> to unlock:</p>
+                <h4>Deep Search</h4>
+                <p>Enable <strong>Deep Search</strong> to also query:</p>
                 <ul>
                   <li>Real-time OpenStreetMap queries</li>
                   <li>Complex tag combinations</li>
