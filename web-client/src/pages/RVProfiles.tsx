@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import { rvProfiles as rvApi } from '../services/api'
 
 export default function RVProfiles() {
@@ -686,9 +687,7 @@ export default function RVProfiles() {
       )}
 
       {profiles.length === 0 ? (
-        <div className="card">
-          <p>No RV profiles yet. Create one to get started!</p>
-        </div>
+        <EmptyState title="No RV profiles yet" hint="Add your rig's dimensions so routes avoid low clearances and weight limits." />
       ) : (
         <div className="grid grid-2">
           {profiles.filter(profile => profile.id !== editingId).map(profile => (

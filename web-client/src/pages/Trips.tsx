@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import { Link } from 'react-router-dom'
 import { trips as tripsApi } from '../services/api'
 
@@ -46,9 +47,7 @@ export default function Trips() {
       </div>
 
       {trips.length === 0 ? (
-        <div className="card">
-          <p>No trips yet. Create your first trip to get started!</p>
-        </div>
+        <EmptyState title="No trips yet" hint="Create your first trip to start planning routes, stops, and fuel." />
       ) : (
         <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))' }}>
           {trips.map(trip => (

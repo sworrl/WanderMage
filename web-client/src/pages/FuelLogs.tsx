@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import { fuelLogs as fuelApi } from '../services/api'
 import { format } from 'date-fns'
 
@@ -30,9 +31,7 @@ export default function FuelLogs() {
       <h1>Fuel Logs</h1>
 
       {logs.length === 0 ? (
-        <div className="card">
-          <p>No fuel logs yet.</p>
-        </div>
+        <EmptyState title="No fuel logs yet" hint="Log a fill-up to start tracking MPG and real cost per mile." />
       ) : (
         <div className="card">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
