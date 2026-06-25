@@ -9,655 +9,7 @@ import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 import L from 'leaflet'
 import RatingWidget from '../components/RatingWidget'
-
-const HolidayEffects = () => {
-  const [effects, setEffects] = useState<HolidayEffect>(null)
-
-  useEffect(() => {
-    const now = new Date()
-    const month = now.getMonth() // 0-indexed
-    const day = now.getDate()
-    const dayOfWeek = now.getDay() // 0 = Sunday
-
-    // Helper: Get nth weekday of month
-    const getNthWeekday = (year: number, month: number, weekday: number, n: number): number => {
-      const firstDay = new Date(year, month, 1)
-      let count = 0
-      for (let d = 1; d <= 31; d++) {
-        const date = new Date(year, month, d)
-        if (date.getMonth() !== month) break
-        if (date.getDay() === weekday) {
-          count++
-          if (count === n) return d
-        }
-      }
-      return 0
-    }
-
-    // Helper: Get last weekday of month
-    const getLastWeekday = (year: number, month: number, weekday: number): number => {
-      const lastDay = new Date(year, month + 1, 0).getDate()
-      for (let d = lastDay; d >= 1; d--) {
-        const date = new Date(year, month, d)
-        if (date.getDay() === weekday) return d
-      }
-      return 0
-    }
-
-    const year = now.getFullYear()
-
-    // New Year's Day: Jan 1-2
-    if (month === 0 && day <= 2) {
-      setEffects('fireworks')
-    }
-    // MLK Day: 3rd Monday of January (week before and day of)
-    else if (month === 0) {
-      const mlkDay = getNthWeekday(year, 0, 1, 3) // 3rd Monday
-      if (day >= mlkDay - 3 && day <= mlkDay) setEffects('flags')
-    }
-    // Valentine's Day: Feb 12-14
-    else if (month === 1 && day >= 12 && day <= 14) {
-      setEffects('hearts')
-    }
-    // Presidents' Day: 3rd Monday of February
-    else if (month === 1) {
-      const presDay = getNthWeekday(year, 1, 1, 3)
-      if (day >= presDay - 2 && day <= presDay) setEffects('flags')
-    }
-    // St. Patrick's Day: March 15-17
-    else if (month === 2 && day >= 15 && day <= 17) {
-      setEffects('shamrocks')
-    }
-    // Easter: Variable (simplified - late March/April)
-    else if ((month === 2 && day >= 28) || (month === 3 && day <= 25)) {
-      // Simple Easter check - typically falls between March 22 and April 25
-      const easter = getEasterDate(year)
-      if (Math.abs(now.getTime() - easter.getTime()) < 3 * 24 * 60 * 60 * 1000) {
-        setEffects('eggs')
-      }
-    }
-    // Memorial Day: Last Monday of May (week before and day of)
-    else if (month === 4) {
-      const memDay = getLastWeekday(year, 4, 1)
-      if (day >= memDay - 3 && day <= memDay) setEffects('flags')
-    }
-    // Independence Day: July 1-4
-    else if (month === 6 && day >= 1 && day <= 4) {
-      setEffects('fireworks-usa')
-    }
-    // Labor Day: 1st Monday of September
-    else if (month === 8) {
-      const laborDay = getNthWeekday(year, 8, 1, 1)
-      if (day >= laborDay - 2 && day <= laborDay) setEffects('flags')
-    }
-    // Halloween: Oct 28-31
-    else if (month === 9 && day >= 28 && day <= 31) {
-      setEffects('spooky')
-    }
-    // Veterans Day: Nov 10-11
-    else if (month === 10 && day >= 10 && day <= 11) {
-      setEffects('flags')
-    }
-    // Thanksgiving: 4th Thursday of November (and day after)
-    else if (month === 10) {
-      const thanksgiving = getNthWeekday(year, 10, 4, 4)
-      if (day >= thanksgiving - 1 && day <= thanksgiving + 1) setEffects('leaves')
-    }
-    // Christmas season: Dec 20 - Dec 30
-    else if (month === 11 && day >= 20 && day <= 30) {
-      setEffects('snow')
-    }
-    // New Year's Eve: Dec 31
-    else if (month === 11 && day === 31) {
-      setEffects('fireworks')
-    }
-    else {
-      setEffects(null)
-    }
-  }, [])
-
-  // Calculate Easter date (Anonymous Gregorian algorithm)
-  const getEasterDate = (year: number): Date => {
-    const a = year % 19
-    const b = Math.floor(year / 100)
-    const c = year % 100
-    const d = Math.floor(b / 4)
-    const e = b % 4
-    const f = Math.floor((b + 8) / 25)
-    const g = Math.floor((b - f + 1) / 3)
-    const h = (19 * a + b - d - g + 15) % 30
-    const i = Math.floor(c / 4)
-    const k = c % 4
-    const l = (32 + 2 * e + 2 * i - h - k) % 7
-    const m = Math.floor((a + 11 * h + 22 * l) / 451)
-    const month = Math.floor((h + l - 7 * m + 114) / 31) - 1
-    const day = ((h + l - 7 * m + 114) % 31) + 1
-    return new Date(year, month, day)
-  }
-
-  if (!effects) return null
-
-  // Snow effect for Christmas
-  if (effects === 'snow') {
-    const snowflakes = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 10,
-      duration: 8 + Math.random() * 7,
-      size: 4 + Math.random() * 8,
-      opacity: 0.3 + Math.random() * 0.5
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes snowfall {
-            0% { transform: translateY(-10vh) rotate(0deg); }
-            100% { transform: translateY(110vh) rotate(360deg); }
-          }
-          @keyframes sway {
-            0%, 100% { margin-left: 0; }
-            50% { margin-left: 20px; }
-          }
-        `}</style>
-        {snowflakes.map(flake => (
-          <div
-            key={flake.id}
-            style={{
-              position: 'absolute',
-              left: `${flake.left}%`,
-              top: '-20px',
-              width: `${flake.size}px`,
-              height: `${flake.size}px`,
-              background: 'white',
-              borderRadius: '50%',
-              opacity: flake.opacity,
-              animation: `snowfall ${flake.duration}s linear ${flake.delay}s infinite, sway ${3 + Math.random() * 2}s ease-in-out infinite`,
-              boxShadow: '0 0 5px rgba(255,255,255,0.5)'
-            }}
-          />
-        ))}
-      </div>
-    )
-  }
-
-  // Fireworks effect for New Year's
-  if (effects === 'fireworks') {
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes firework-launch {
-            0% { transform: translateY(100vh) scale(1); opacity: 1; }
-            50% { transform: translateY(30vh) scale(1); opacity: 1; }
-            51% { transform: translateY(30vh) scale(0); opacity: 0; }
-            100% { transform: translateY(30vh) scale(0); opacity: 0; }
-          }
-          @keyframes firework-burst {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(0); opacity: 0; }
-            55% { transform: scale(0.5); opacity: 1; }
-            100% { transform: scale(2); opacity: 0; }
-          }
-          @keyframes sparkle {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 1; }
-          }
-        `}</style>
-        {Array.from({ length: 5 }, (_, i) => {
-          const colors = ['#ff0000', '#00ff00', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4']
-          const color = colors[Math.floor(Math.random() * colors.length)]
-          const left = 10 + Math.random() * 80
-          const delay = i * 2 + Math.random() * 3
-
-          return (
-            <div key={i} style={{ position: 'absolute', left: `${left}%`, bottom: 0 }}>
-              {/* Launch trail */}
-              <div style={{
-                width: '4px',
-                height: '20px',
-                background: `linear-gradient(to top, ${color}, transparent)`,
-                animation: `firework-launch ${4}s ease-out ${delay}s infinite`,
-                borderRadius: '2px'
-              }} />
-              {/* Burst */}
-              <div style={{
-                position: 'absolute',
-                top: '30vh',
-                left: '-40px',
-                width: '80px',
-                height: '80px',
-                animation: `firework-burst ${4}s ease-out ${delay}s infinite`
-              }}>
-                {Array.from({ length: 12 }, (_, j) => (
-                  <div key={j} style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: '3px',
-                    height: '15px',
-                    background: color,
-                    borderRadius: '2px',
-                    transformOrigin: 'center bottom',
-                    transform: `rotate(${j * 30}deg) translateY(-20px)`,
-                    boxShadow: `0 0 6px ${color}`
-                  }} />
-                ))}
-              </div>
-            </div>
-          )
-        })}
-        {/* Random sparkles */}
-        {Array.from({ length: 20 }, (_, i) => (
-          <div key={`sparkle-${i}`} style={{
-            position: 'absolute',
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 60}%`,
-            width: '4px',
-            height: '4px',
-            background: '#fff',
-            borderRadius: '50%',
-            animation: `sparkle ${1 + Math.random()}s ease-in-out ${Math.random() * 5}s infinite`,
-            boxShadow: '0 0 4px #fff'
-          }} />
-        ))}
-      </div>
-    )
-  }
-
-  // Hearts effect for Valentine's Day
-  if (effects === 'hearts') {
-    const hearts = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 10,
-      duration: 10 + Math.random() * 5,
-      size: 10 + Math.random() * 15,
-      opacity: 0.3 + Math.random() * 0.4
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes float-up {
-            0% { transform: translateY(110vh) scale(1); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(-10vh) scale(1.2); opacity: 0; }
-          }
-        `}</style>
-        {hearts.map(heart => (
-          <div
-            key={heart.id}
-            style={{
-              position: 'absolute',
-              left: `${heart.left}%`,
-              fontSize: `${heart.size}px`,
-              opacity: heart.opacity,
-              animation: `float-up ${heart.duration}s ease-in-out ${heart.delay}s infinite`,
-              color: `hsl(${340 + Math.random() * 20}, 80%, 60%)`
-            }}
-          >
-            ❤️
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Shamrocks effect for St. Patrick's Day
-  if (effects === 'shamrocks') {
-    const shamrocks = Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 8,
-      duration: 8 + Math.random() * 6,
-      size: 12 + Math.random() * 18,
-      opacity: 0.4 + Math.random() * 0.4
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes shamrock-fall {
-            0% { transform: translateY(-10vh) rotate(0deg); }
-            100% { transform: translateY(110vh) rotate(360deg); }
-          }
-        `}</style>
-        {shamrocks.map(s => (
-          <div
-            key={s.id}
-            style={{
-              position: 'absolute',
-              left: `${s.left}%`,
-              top: '-20px',
-              fontSize: `${s.size}px`,
-              opacity: s.opacity,
-              animation: `shamrock-fall ${s.duration}s linear ${s.delay}s infinite`
-            }}
-          >
-            ☘️
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Easter eggs effect
-  if (effects === 'eggs') {
-    const eggs = ['🥚', '🐣', '🐰', '🌷', '🥕']
-    const items = Array.from({ length: 25 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 12,
-      duration: 12 + Math.random() * 6,
-      size: 14 + Math.random() * 14,
-      opacity: 0.5 + Math.random() * 0.4,
-      emoji: eggs[Math.floor(Math.random() * eggs.length)]
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes egg-bounce {
-            0% { transform: translateY(-10vh); }
-            50% { transform: translateY(50vh); }
-            100% { transform: translateY(110vh); }
-          }
-        `}</style>
-        {items.map(item => (
-          <div
-            key={item.id}
-            style={{
-              position: 'absolute',
-              left: `${item.left}%`,
-              top: '-20px',
-              fontSize: `${item.size}px`,
-              opacity: item.opacity,
-              animation: `egg-bounce ${item.duration}s ease-in-out ${item.delay}s infinite`
-            }}
-          >
-            {item.emoji}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // American flags/stars effect for patriotic holidays
-  if (effects === 'flags') {
-    const items = Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 10,
-      duration: 15 + Math.random() * 8,
-      size: 16 + Math.random() * 12,
-      opacity: 0.4 + Math.random() * 0.4,
-      emoji: Math.random() > 0.5 ? '🇺🇸' : '⭐'
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes flag-wave {
-            0% { transform: translateY(-10vh) rotate(-5deg); }
-            25% { transform: translateY(30vh) rotate(5deg); }
-            50% { transform: translateY(60vh) rotate(-5deg); }
-            75% { transform: translateY(90vh) rotate(5deg); }
-            100% { transform: translateY(110vh) rotate(-5deg); }
-          }
-        `}</style>
-        {items.map(item => (
-          <div
-            key={item.id}
-            style={{
-              position: 'absolute',
-              left: `${item.left}%`,
-              top: '-30px',
-              fontSize: `${item.size}px`,
-              opacity: item.opacity,
-              animation: `flag-wave ${item.duration}s ease-in-out ${item.delay}s infinite`
-            }}
-          >
-            {item.emoji}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Red/White/Blue fireworks for July 4th
-  if (effects === 'fireworks-usa') {
-    const usaColors = ['#B22234', '#FFFFFF', '#3C3B6E'] // Red, White, Blue
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes usa-launch {
-            0% { transform: translateY(100vh) scale(1); opacity: 1; }
-            50% { transform: translateY(25vh) scale(1); opacity: 1; }
-            51% { transform: translateY(25vh) scale(0); opacity: 0; }
-            100% { transform: translateY(25vh) scale(0); opacity: 0; }
-          }
-          @keyframes usa-burst {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(0); opacity: 0; }
-            55% { transform: scale(0.6); opacity: 1; }
-            100% { transform: scale(2.5); opacity: 0; }
-          }
-        `}</style>
-        {Array.from({ length: 6 }, (_, i) => {
-          const color = usaColors[i % 3]
-          const left = 10 + (i * 15) + Math.random() * 10
-          const delay = i * 1.5 + Math.random() * 2
-
-          return (
-            <div key={i} style={{ position: 'absolute', left: `${left}%`, bottom: 0 }}>
-              <div style={{
-                width: '5px',
-                height: '25px',
-                background: `linear-gradient(to top, ${color}, transparent)`,
-                animation: `usa-launch 3.5s ease-out ${delay}s infinite`,
-                borderRadius: '2px'
-              }} />
-              <div style={{
-                position: 'absolute',
-                top: '25vh',
-                left: '-50px',
-                width: '100px',
-                height: '100px',
-                animation: `usa-burst 3.5s ease-out ${delay}s infinite`
-              }}>
-                {Array.from({ length: 16 }, (_, j) => (
-                  <div key={j} style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: '4px',
-                    height: '20px',
-                    background: color,
-                    borderRadius: '2px',
-                    transformOrigin: 'center bottom',
-                    transform: `rotate(${j * 22.5}deg) translateY(-25px)`,
-                    boxShadow: `0 0 8px ${color}`
-                  }} />
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
-
-  // Spooky effect for Halloween
-  if (effects === 'spooky') {
-    const spookyEmojis = ['🎃', '👻', '🦇', '🕷️', '💀', '🕸️']
-    const items = Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 10,
-      duration: 10 + Math.random() * 8,
-      size: 14 + Math.random() * 20,
-      opacity: 0.4 + Math.random() * 0.5,
-      emoji: spookyEmojis[Math.floor(Math.random() * spookyEmojis.length)]
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes spooky-float {
-            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
-            10% { opacity: 1; }
-            50% { transform: translateY(50vh) translateX(30px) rotate(10deg); }
-            90% { opacity: 1; }
-            100% { transform: translateY(110vh) translateX(-30px) rotate(-10deg); opacity: 0; }
-          }
-        `}</style>
-        {items.map(item => (
-          <div
-            key={item.id}
-            style={{
-              position: 'absolute',
-              left: `${item.left}%`,
-              top: '-30px',
-              fontSize: `${item.size}px`,
-              opacity: item.opacity,
-              animation: `spooky-float ${item.duration}s ease-in-out ${item.delay}s infinite`
-            }}
-          >
-            {item.emoji}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Fall leaves effect for Thanksgiving
-  if (effects === 'leaves') {
-    const leafEmojis = ['🍂', '🍁', '🦃', '🌽', '🥧']
-    const items = Array.from({ length: 35 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 12,
-      duration: 10 + Math.random() * 8,
-      size: 14 + Math.random() * 16,
-      opacity: 0.5 + Math.random() * 0.4,
-      emoji: leafEmojis[Math.floor(Math.random() * leafEmojis.length)]
-    }))
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        overflow: 'hidden'
-      }}>
-        <style>{`
-          @keyframes leaf-fall {
-            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); }
-            25% { transform: translateY(25vh) translateX(40px) rotate(90deg); }
-            50% { transform: translateY(50vh) translateX(-20px) rotate(180deg); }
-            75% { transform: translateY(75vh) translateX(30px) rotate(270deg); }
-            100% { transform: translateY(110vh) translateX(0) rotate(360deg); }
-          }
-        `}</style>
-        {items.map(item => (
-          <div
-            key={item.id}
-            style={{
-              position: 'absolute',
-              left: `${item.left}%`,
-              top: '-30px',
-              fontSize: `${item.size}px`,
-              opacity: item.opacity,
-              animation: `leaf-fall ${item.duration}s ease-in-out ${item.delay}s infinite`
-            }}
-          >
-            {item.emoji}
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  return null
-}
+import Icon, { iconSvg } from '../components/Icon'
 
 // Helper function to calculate distance between two points in miles (Haversine formula)
 function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -698,10 +50,10 @@ L.Icon.Default.mergeOptions({
 })
 
 // Custom POI icons
-const createIcon = (color: string, symbol: string) => {
+const createIcon = (color: string, name: string) => {
   return L.divIcon({
     className: 'custom-icon',
-    html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); font-size: 16px;">${symbol}</div>`,
+    html: `<div style="background-color: ${color}; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); color: white;">${iconSvg(name, { size: 16, color: 'white' })}</div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   })
@@ -740,7 +92,7 @@ const createStartIcon = (arrivalDate?: string, weatherIcon?: string) => {
         color: white;
       ">
         <div style="display: flex; align-items: center; gap: 2px;">
-          <span style="font-size: 16px;">🚩</span>
+          ${iconSvg('flag', { size: 16, color: 'white' })}
           ${weatherIcon ? `<img src="${weatherIcon}" alt="" style="width: 16px; height: 16px;" />` : ''}
         </div>
         ${dateStr ? `<span style="font-size: 9px; line-height: 1; margin-top: 2px; opacity: 0.95;">${dateStr}</span>` : ''}
@@ -784,7 +136,7 @@ const createFinishIcon = (arrivalDate?: string, weatherIcon?: string) => {
         color: white;
       ">
         <div style="display: flex; align-items: center; gap: 2px;">
-          <span style="font-size: 16px;">🏁</span>
+          ${iconSvg('flagCheckered', { size: 16, color: 'white' })}
           ${weatherIcon ? `<img src="${weatherIcon}" alt="" style="width: 16px; height: 16px;" />` : ''}
         </div>
         ${dateStr ? `<span style="font-size: 9px; line-height: 1; margin-top: 2px; opacity: 0.95;">${dateStr}</span>` : ''}
@@ -827,7 +179,7 @@ const createStopIcon = (stopNumber: number, arrivalDate: string | null, isNeedsS
       font-size: 9px;
       border: 2px solid white;
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    ">🌙</div>
+    ">${iconSvg('moon', { size: 14, color: 'white' })}</div>
   ` : ''
 
   const hasExtras = !!dateStr || !!weatherIcon
@@ -912,7 +264,7 @@ const createGapSuggestionIcon = (arrivalDate?: string, weatherIcon?: string) => 
         color: white;
       ">
         <div style="display: flex; align-items: center; gap: 2px;">
-          <span style="font-size: 14px;">🏕️</span>
+          ${iconSvg('tent', { size: 14, color: 'white' })}
           ${hasWeather ? `<img src="${weatherIcon}" alt="" style="width: 16px; height: 16px;" />` : ''}
         </div>
         ${hasDate ? `<span style="font-size: 9px; line-height: 1; margin-top: 2px; opacity: 0.95;">${dateStr}</span>` : ''}
@@ -1350,151 +702,151 @@ const createReticleIcon = () => {
 const POI_CATEGORIES = {
   fuel_stations: {
     name: 'Fuel Stations',
-    icon: createIcon('#F59E0B', '⛽'),
+    icon: createIcon('#F59E0B', 'fuel'),
     color: '#F59E0B',
     query: 'node["amenity"="fuel"]({{bbox}});'
   },
   ev_charging: {
     name: 'EV Charging',
-    icon: createIcon('#10B981', '🔌'),
+    icon: createIcon('#10B981', 'ev'),
     color: '#10B981',
     query: 'node["amenity"="charging_station"]({{bbox}});'
   },
   rest_areas: {
     name: 'Rest Areas',
-    icon: createIcon('#3B82F6', '🅿️'),
+    icon: createIcon('#3B82F6', 'shelter'),
     color: '#3B82F6',
     query: 'node["highway"="rest_area"]({{bbox}});way["highway"="rest_area"]({{bbox}});'
   },
   rv_parks: {
     name: 'RV Parks & Resorts',
-    icon: createIcon('#059669', '🚐'),
+    icon: createIcon('#059669', 'rv'),
     color: '#059669',
     query: 'node["tourism"="caravan_site"]({{bbox}});'
   },
   tent_camping: {
     name: 'Tent & Wilderness Camping',
-    icon: createIcon('#10B981', '⛺'),
+    icon: createIcon('#10B981', 'tent'),
     color: '#10B981',
     query: 'node["tourism"="camp_site"]({{bbox}});'
   },
   lodging: {
     name: 'Hotels & Motels',
-    icon: createIcon('#8B5CF6', '🏨'),
+    icon: createIcon('#8B5CF6', 'bed'),
     color: '#8B5CF6',
     query: 'node["tourism"="hotel"]({{bbox}});node["tourism"="motel"]({{bbox}});'
   },
   parks: {
     name: 'Parks',
-    icon: createIcon('#14B8A6', '🌳'),
+    icon: createIcon('#14B8A6', 'tree'),
     color: '#14B8A6',
     query: 'node["leisure"="park"]({{bbox}});node["leisure"="dog_park"]({{bbox}});node["leisure"="playground"]({{bbox}});'
   },
   national_parks: {
     name: 'National Parks',
-    icon: createIcon('#047857', '🏞️'),
+    icon: createIcon('#047857', 'mountain'),
     color: '#047857',
     query: 'node["boundary"="national_park"]({{bbox}});way["boundary"="national_park"]({{bbox}});'
   },
   shopping: {
     name: 'Grocery & Shopping',
-    icon: createIcon('#EC4899', '🛒'),
+    icon: createIcon('#EC4899', 'cart'),
     color: '#EC4899',
     query: 'node["shop"="supermarket"]({{bbox}});node["shop"="department_store"]({{bbox}});'
   },
   convenience_stores: {
     name: 'Convenience Stores',
-    icon: createIcon('#F97316', '🏪'),
+    icon: createIcon('#F97316', 'store'),
     color: '#F97316',
     query: 'node["shop"="convenience"]({{bbox}});'
   },
   dining: {
     name: 'Restaurants',
-    icon: createIcon('#EF4444', '🍽️'),
+    icon: createIcon('#EF4444', 'food'),
     color: '#EF4444',
     query: 'node["amenity"="restaurant"]({{bbox}});node["amenity"="fast_food"]({{bbox}});'
   },
   dump_stations: {
     name: 'RV Dump Stations',
-    icon: createIcon('#6366F1', '💩'),
+    icon: createIcon('#6366F1', 'droplet'),
     color: '#6366F1',
     query: 'node["amenity"="sanitary_dump_station"]({{bbox}});'
   },
   restrooms: {
     name: 'Public Restrooms',
-    icon: createIcon('#A855F7', '🚽'),
+    icon: createIcon('#A855F7', 'restroom'),
     color: '#A855F7',
     query: 'node["amenity"="toilets"]({{bbox}});'
   },
   hospitals: {
     name: 'Hospitals & Medical',
-    icon: createIcon('#DC2626', '🏥'),
+    icon: createIcon('#DC2626', 'medical'),
     color: '#DC2626',
     query: 'node["amenity"="hospital"]({{bbox}});node["amenity"="clinic"]({{bbox}});'
   },
   post_offices: {
     name: 'Post Offices',
-    icon: createIcon('#2563EB', '📮'),
+    icon: createIcon('#2563EB', 'mail'),
     color: '#2563EB',
     query: 'node["amenity"="post_office"]({{bbox}});'
   },
   government: {
     name: 'Government Buildings',
-    icon: createIcon('#1E40AF', '🏛️'),
+    icon: createIcon('#1E40AF', 'building'),
     color: '#1E40AF',
     query: 'node["amenity"="townhall"]({{bbox}});node["amenity"="courthouse"]({{bbox}});node["office"="government"]({{bbox}});'
   },
   visitor_centers: {
     name: 'Visitor Centers',
-    icon: createIcon('#06B6D4', 'ℹ️'),
+    icon: createIcon('#06B6D4', 'info'),
     color: '#06B6D4',
     query: 'node["tourism"="information"]({{bbox}});'
   },
   laundromat: {
     name: 'Laundromats',
-    icon: createIcon('#60A5FA', '🧺'),
+    icon: createIcon('#60A5FA', 'laundry'),
     color: '#60A5FA',
     query: 'node["shop"="laundry"]({{bbox}});way["shop"="laundry"]({{bbox}});'
   },
   vet: {
     name: 'Veterinarians',
-    icon: createIcon('#F472B6', '🐕'),
+    icon: createIcon('#F472B6', 'paw'),
     color: '#F472B6',
     query: 'node["amenity"="veterinary"]({{bbox}});way["amenity"="veterinary"]({{bbox}});'
   },
   pharmacy: {
     name: 'Pharmacies',
-    icon: createIcon('#34D399', '💊'),
+    icon: createIcon('#34D399', 'pill'),
     color: '#34D399',
     query: 'node["amenity"="pharmacy"]({{bbox}});way["amenity"="pharmacy"]({{bbox}});'
   },
   tire_shop: {
     name: 'Tire Shops',
-    icon: createIcon('#6B7280', '🔧'),
+    icon: createIcon('#6B7280', 'tire'),
     color: '#6B7280',
     query: 'node["shop"="tyres"]({{bbox}});way["shop"="tyres"]({{bbox}});'
   },
   auto_repair: {
     name: 'Auto Repair',
-    icon: createIcon('#9CA3AF', '🔩'),
+    icon: createIcon('#9CA3AF', 'tools'),
     color: '#9CA3AF',
     query: 'node["shop"="car_repair"]({{bbox}});way["shop"="car_repair"]({{bbox}});'
   },
   hardware_store: {
     name: 'Hardware Stores',
-    icon: createIcon('#F59E0B', '🛠️'),
+    icon: createIcon('#F59E0B', 'gear'),
     color: '#F59E0B',
     query: 'node["shop"="hardware"]({{bbox}});node["shop"="doityourself"]({{bbox}});'
   },
   rv_wash: {
     name: 'Car/RV Wash',
-    icon: createIcon('#38BDF8', '🚿'),
+    icon: createIcon('#38BDF8', 'wash'),
     color: '#38BDF8',
     query: 'node["amenity"="car_wash"]({{bbox}});way["amenity"="car_wash"]({{bbox}});'
   },
   rv_service: {
     name: 'RV Service & Dealers',
-    icon: createIcon('#A78BFA', '🛞'),
+    icon: createIcon('#A78BFA', 'tire'),
     color: '#A78BFA',
     query: 'node["shop"="caravan"]({{bbox}});way["shop"="caravan"]({{bbox}});'
   },
@@ -1504,19 +856,19 @@ const POI_CATEGORIES = {
 const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: string; maxNativeZoom: number } } = {
   // Dark themes
   dark: {
-    name: '🌙 Dark Mode',
+    name: 'Dark Mode',
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxNativeZoom: 20
   },
   dark_nolabels: {
-    name: '🌑 Dark (No Labels)',
+    name: 'Dark (No Labels)',
     url: 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxNativeZoom: 20
   },
   alidade_smooth_dark: {
-    name: '🌌 Alidade Smooth Dark',
+    name: 'Alidade Smooth Dark',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
@@ -1524,43 +876,43 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Standard/Street maps
   osm: {
-    name: '🗺️ OpenStreetMap',
+    name: 'OpenStreetMap',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 19
   },
   voyager: {
-    name: '🏙️ Street (Voyager)',
+    name: 'Street (Voyager)',
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxNativeZoom: 20
   },
   voyager_nolabels: {
-    name: '🏙️ Voyager (No Labels)',
+    name: 'Voyager (No Labels)',
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxNativeZoom: 20
   },
   positron: {
-    name: '⬜ Positron (Light)',
+    name: 'Positron (Light)',
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxNativeZoom: 20
   },
   positron_nolabels: {
-    name: '⬜ Positron (No Labels)',
+    name: 'Positron (No Labels)',
     url: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     maxNativeZoom: 20
   },
   alidade_smooth: {
-    name: '🌸 Alidade Smooth',
+    name: 'Alidade Smooth',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
   },
   osm_bright: {
-    name: '☀️ OSM Bright',
+    name: 'OSM Bright',
     url: 'https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
@@ -1568,7 +920,7 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Satellite/Aerial
   satellite: {
-    name: '🛰️ Satellite (Esri)',
+    name: 'Satellite (Esri)',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
     maxNativeZoom: 19
@@ -1576,43 +928,43 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Topographic/Terrain
   topo: {
-    name: '🗻 Topographic (OpenTopo)',
+    name: 'Topographic (OpenTopo)',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
     maxNativeZoom: 17
   },
   terrain: {
-    name: '🏔️ Terrain (Stamen)',
+    name: 'Terrain (Stamen)',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 18
   },
   terrain_background: {
-    name: '🏔️ Terrain Background',
+    name: 'Terrain Background',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_background/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 18
   },
   terrain_lines: {
-    name: '📈 Terrain Lines Only',
+    name: 'Terrain Lines Only',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_terrain_lines/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 18
   },
   usgs: {
-    name: '🗺️ USGS Topo',
+    name: 'USGS Topo',
     url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
     maxNativeZoom: 16
   },
   usgs_imagery: {
-    name: '🛰️ USGS Imagery',
+    name: 'USGS Imagery',
     url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
     maxNativeZoom: 16
   },
   usgs_imagery_topo: {
-    name: '🗻 USGS Imagery+Topo',
+    name: 'USGS Imagery+Topo',
     url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryTopo/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>',
     maxNativeZoom: 16
@@ -1620,31 +972,31 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Artistic/Stylized
   watercolor: {
-    name: '🎨 Watercolor',
+    name: 'Watercolor',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 16
   },
   toner: {
-    name: '🖼️ Toner',
+    name: 'Toner',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
   },
   toner_lite: {
-    name: '🖼️ Toner Lite',
+    name: 'Toner Lite',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
   },
   toner_background: {
-    name: '⬛ Toner Background',
+    name: 'Toner Background',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_background/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
   },
   toner_lines: {
-    name: '➖ Toner Lines Only',
+    name: 'Toner Lines Only',
     url: 'https://tiles.stadiamaps.com/tiles/stamen_toner_lines/{z}/{x}/{y}{r}.png',
     attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
@@ -1652,19 +1004,19 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Special purpose
   humanitarian: {
-    name: '🏥 Humanitarian',
+    name: 'Humanitarian',
     url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a>',
     maxNativeZoom: 20
   },
   cycle: {
-    name: '🚴 OpenCycleMap',
+    name: 'OpenCycleMap',
     url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
     attribution: '<a href="https://github.com/cyclosm/cyclosm-cartocss-style/releases" title="CyclOSM - Open Bicycle Render">CyclOSM</a> | Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
   },
   transport: {
-    name: '🚌 Transport',
+    name: 'Transport',
     url: 'https://tile.memomaps.de/tilegen/{z}/{x}/{y}.png',
     attribution: 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 18
@@ -1672,49 +1024,49 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Esri specialty maps
   esri_natgeo: {
-    name: '🌍 National Geographic',
+    name: 'National Geographic',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; National Geographic, Esri, DeLorme, NAVTEQ, UNEP-WCMC, USGS, NASA, ESA, METI, NRCAN, GEBCO, NOAA, iPC',
     maxNativeZoom: 16
   },
   esri_ocean: {
-    name: '🌊 Ocean Basemap',
+    name: 'Ocean Basemap',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Sources: GEBCO, NOAA, CHS, OSU, UNH, CSUMB, National Geographic, DeLorme, NAVTEQ, and Esri',
     maxNativeZoom: 13
   },
   esri_physical: {
-    name: '🏜️ Physical',
+    name: 'Physical',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Source: US National Park Service',
     maxNativeZoom: 8
   },
   esri_shaded: {
-    name: '⛰️ Shaded Relief',
+    name: 'Shaded Relief',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri',
     maxNativeZoom: 13
   },
   esri_gray: {
-    name: '⬜ Canvas Light Gray',
+    name: 'Canvas Light Gray',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
     maxNativeZoom: 16
   },
   esri_gray_dark: {
-    name: '⬛ Canvas Dark Gray',
+    name: 'Canvas Dark Gray',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
     maxNativeZoom: 16
   },
   esri_street: {
-    name: '🛣️ Esri Street',
+    name: 'Esri Street',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
     maxNativeZoom: 19
   },
   esri_topo: {
-    name: '🗻 Esri Topographic',
+    name: 'Esri Topographic',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community',
     maxNativeZoom: 19
@@ -1722,19 +1074,19 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // International/Regional
   mtb: {
-    name: '🚵 MTB Map',
+    name: 'MTB Map',
     url: 'http://tile.mtbmap.cz/mtbmap_tiles/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &amp; USGS',
     maxNativeZoom: 18
   },
   opnv: {
-    name: '🚇 Public Transit (OPNV)',
+    name: 'Public Transit (OPNV)',
     url: 'https://tileserver.memomaps.de/tilegen/{z}/{x}/{y}.png',
     attribution: 'Map <a href="https://memomaps.de/">memomaps.de</a> <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 18
   },
   hikebike: {
-    name: '🥾 Hike & Bike',
+    name: 'Hike & Bike',
     url: 'https://tiles.wmflabs.org/hikebike/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxNativeZoom: 17
@@ -1742,13 +1094,13 @@ const TILE_LAYERS: { [key: string]: { name: string; url: string; attribution: st
 
   // Outdoors/Adventure
   outdoors: {
-    name: '🏕️ Stadia Outdoors',
+    name: 'Stadia Outdoors',
     url: 'https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
   },
   alidade_satellite: {
-    name: '🛰️ Alidade Satellite',
+    name: 'Alidade Satellite',
     url: 'https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg',
     attribution: '&copy; CNES, Distribution Airbus DS, © Airbus DS, © PlanetObserver (Contains Copernicus Data) | &copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     maxNativeZoom: 20
@@ -1762,7 +1114,7 @@ const createUserLocationIcon = (config: {
   size?: number
 }) => {
   const color = config.color || '#3B82F6'
-  const icon = config.icon || '📍'
+  const icon = config.icon || 'pin'
   const size = config.size || 32
 
   return L.divIcon({
@@ -1822,7 +1174,7 @@ const createUserLocationIcon = (config: {
           font-size: ${size * 0.5}px;
           z-index: 999999 !important;
           animation: locationGlow 1.5s ease-in-out infinite;
-        ">${icon}</div>
+        ">${iconSvg(icon, { size: Math.round(size * 0.5), color: 'white' })}</div>
       </div>
     `,
     iconSize: [size, size],
@@ -1964,10 +1316,10 @@ function LocateControl() {
   }
 
   const getIcon = () => {
-    if (locating) return '⏳'
-    if (status === 'denied') return '🚫'
-    if (status === 'unavailable') return '❓'
-    return '📍'
+    if (locating) return 'refresh'
+    if (status === 'denied') return 'cross'
+    if (status === 'unavailable') return 'warn'
+    return 'compass'
   }
 
   const getTitle = () => {
@@ -1991,7 +1343,7 @@ function LocateControl() {
         title={getTitle()}
         style={getButtonStyle()}
       >
-        {getIcon()}
+        <Icon name={getIcon()} size={18} />
       </button>
     </div>
   )
@@ -2078,7 +1430,7 @@ function UserLocationMarker() {
   const [timestamp, setTimestamp] = useState<number | null>(null)
   const [zoom, setZoom] = useState(10)
   const [showModal, setShowModal] = useState(false)
-  const [locationConfig, setLocationConfig] = useState({ color: '#3B82F6', icon: '📍' })
+  const [locationConfig, setLocationConfig] = useState({ color: '#3B82F6', icon: 'pin' })
   const [configLoaded, setConfigLoaded] = useState(false)
   const map = useMap()
 
@@ -2232,7 +1584,7 @@ function UserLocationMarker() {
       >
         <Popup>
           <div style={{ minWidth: '200px' }}>
-            <h3 style={{ margin: '0 0 10px 0', color: locationConfig.color }}>📍 Your Location</h3>
+            <h3 style={{ margin: '0 0 10px 0', color: locationConfig.color }}>Your Location</h3>
             <button
               onClick={() => setShowModal(true)}
               style={{
@@ -2278,7 +1630,7 @@ function UserLocationMarker() {
             border: '1px solid var(--border-color)'
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>📍 Detailed Location Information</h2>
+              <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>Detailed Location Information</h2>
               <button onClick={() => setShowModal(false)} style={{
                 background: 'var(--accent-danger)',
                 color: 'white',
@@ -2397,185 +1749,18 @@ function UserLocationMarker() {
                   <select
                     value={locationConfig.icon}
                     onChange={(e) => handleConfigChange('icon', e.target.value)}
-                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '18px', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)', maxHeight: '200px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '14px', backgroundColor: 'var(--input-bg)', color: 'var(--text-primary)' }}
                   >
-                    <optgroup label="📍 Pins & Markers">
-                      <option value="📍">📍 Classic Pin</option>
-                      <option value="📌">📌 Pushpin</option>
-                      <option value="📎">📎 Paperclip</option>
-                      <option value="🔖">🔖 Bookmark</option>
-                    </optgroup>
-
-                    <optgroup label="🎯 Targets & Crosshairs">
-                      <option value="🎯">🎯 Bullseye</option>
-                      <option value="⊕">⊕ Crosshair</option>
-                      <option value="⊗">⊗ Circle-X</option>
-                      <option value="⊙">⊙ Dot-Circle</option>
-                      <option value="◎">◎ Double Circle</option>
-                    </optgroup>
-
-                    <optgroup label="⭐ Stars & Shapes">
-                      <option value="⭐">⭐ Star</option>
-                      <option value="✨">✨ Sparkles</option>
-                      <option value="💫">💫 Dizzy</option>
-                      <option value="🌟">🌟 Glowing Star</option>
-                      <option value="⛤">⛤ Pentagram</option>
-                      <option value="✴️">✴️ Eight Point</option>
-                      <option value="❇️">❇️ Sparkle</option>
-                    </optgroup>
-
-                    <optgroup label="🔵 Dots & Circles">
-                      <option value="🔵">🔵 Blue Dot</option>
-                      <option value="🟢">🟢 Green Dot</option>
-                      <option value="🔴">🔴 Red Dot</option>
-                      <option value="🟡">🟡 Yellow Dot</option>
-                      <option value="🟠">🟠 Orange Dot</option>
-                      <option value="🟣">🟣 Purple Dot</option>
-                      <option value="⚫">⚫ Black Dot</option>
-                      <option value="⚪">⚪ White Dot</option>
-                      <option value="🟤">🟤 Brown Dot</option>
-                    </optgroup>
-
-                    <optgroup label="🚩 Flags & Markers">
-                      <option value="🚩">🚩 Red Flag</option>
-                      <option value="🏁">🏁 Checkered Flag</option>
-                      <option value="🏴">🏴 Black Flag</option>
-                      <option value="🏳️">🏳️ White Flag</option>
-                      <option value="🎌">🎌 Crossed Flags</option>
-                      <option value="🏴‍☠️">🏴‍☠️ Pirate Flag</option>
-                      <option value="🚧">🚧 Construction</option>
-                    </optgroup>
-
-                    <optgroup label="🧭 Navigation">
-                      <option value="🧭">🧭 Compass</option>
-                      <option value="⬆️">⬆️ Up Arrow</option>
-                      <option value="➡️">➡️ Right Arrow</option>
-                      <option value="⬇️">⬇️ Down Arrow</option>
-                      <option value="⬅️">⬅️ Left Arrow</option>
-                      <option value="↗️">↗️ NE Arrow</option>
-                      <option value="↘️">↘️ SE Arrow</option>
-                      <option value="↙️">↙️ SW Arrow</option>
-                      <option value="↖️">↖️ NW Arrow</option>
-                      <option value="🔄">🔄 Refresh</option>
-                    </optgroup>
-
-                    <optgroup label="🗺️ Maps & Location">
-                      <option value="🗺️">🗺️ World Map</option>
-                      <option value="🌐">🌐 Globe</option>
-                      <option value="🌍">🌍 Earth Africa</option>
-                      <option value="🌎">🌎 Earth Americas</option>
-                      <option value="🌏">🌏 Earth Asia</option>
-                      <option value="🗾">🗾 Japan Map</option>
-                    </optgroup>
-
-                    <optgroup label="📡 Satellites & Signals">
-                      <option value="📡">📡 Satellite Dish</option>
-                      <option value="🛰️">🛰️ GPS Satellite</option>
-                      <option value="📶">📶 Signal Bars</option>
-                      <option value="📳">📳 Vibrate</option>
-                      <option value="📴">📴 Phone Off</option>
-                      <option value="🔆">🔆 Bright</option>
-                    </optgroup>
-
-                    <optgroup label="🚗 Vehicles">
-                      <option value="🚗">🚗 Car</option>
-                      <option value="🚙">🚙 SUV</option>
-                      <option value="🚐">🚐 Van</option>
-                      <option value="🚚">🚚 Truck</option>
-                      <option value="🏎️">🏎️ Race Car</option>
-                      <option value="🚓">🚓 Police Car</option>
-                      <option value="🚑">🚑 Ambulance</option>
-                      <option value="🚒">🚒 Fire Truck</option>
-                      <option value="🚜">🚜 Tractor</option>
-                      <option value="🛻">🛻 Pickup</option>
-                    </optgroup>
-
-                    <optgroup label="✈️ Aircraft & Travel">
-                      <option value="✈️">✈️ Airplane</option>
-                      <option value="🛩️">🛩️ Small Plane</option>
-                      <option value="🚁">🚁 Helicopter</option>
-                      <option value="🛸">🛸 UFO</option>
-                      <option value="🚀">🚀 Rocket</option>
-                      <option value="🎈">🎈 Balloon</option>
-                    </optgroup>
-
-                    <optgroup label="⚓ Maritime">
-                      <option value="⚓">⚓ Anchor</option>
-                      <option value="⛵">⛵ Sailboat</option>
-                      <option value="🚤">🚤 Speedboat</option>
-                      <option value="🛥️">🛥️ Motor Boat</option>
-                      <option value="⛴️">⛴️ Ferry</option>
-                      <option value="🚢">🚢 Ship</option>
-                    </optgroup>
-
-                    <optgroup label="🏠 Places">
-                      <option value="🏠">🏠 House</option>
-                      <option value="🏡">🏡 House Garden</option>
-                      <option value="🏢">🏢 Office</option>
-                      <option value="🏨">🏨 Hotel</option>
-                      <option value="🏪">🏪 Store</option>
-                      <option value="🏫">🏫 School</option>
-                      <option value="🏥">🏥 Hospital</option>
-                      <option value="🏦">🏦 Bank</option>
-                      <option value="🏭">🏭 Factory</option>
-                      <option value="⛪">⛪ Church</option>
-                      <option value="🕌">🕌 Mosque</option>
-                      <option value="🏛️">🏛️ Classical</option>
-                      <option value="🏰">🏰 Castle</option>
-                      <option value="🗼">🗼 Tower</option>
-                    </optgroup>
-
-                    <optgroup label="⛺ Camping & Outdoors">
-                      <option value="⛺">⛺ Tent</option>
-                      <option value="🏕️">🏕️ Camping</option>
-                      <option value="🎪">🎪 Circus</option>
-                      <option value="🌲">🌲 Tree</option>
-                      <option value="🌳">🌳 Deciduous</option>
-                      <option value="🌴">🌴 Palm</option>
-                      <option value="🏔️">🏔️ Mountain</option>
-                      <option value="⛰️">⛰️ Peak</option>
-                      <option value="🗻">🗻 Fuji</option>
-                    </optgroup>
-
-                    <optgroup label="💎 Gems & Special">
-                      <option value="💎">💎 Diamond</option>
-                      <option value="💠">💠 Gem</option>
-                      <option value="🔷">🔷 Blue Diamond</option>
-                      <option value="🔶">🔶 Orange Diamond</option>
-                      <option value="🔸">🔸 Small Orange</option>
-                      <option value="🔹">🔹 Small Blue</option>
-                      <option value="❤️">❤️ Heart</option>
-                      <option value="💚">💚 Green Heart</option>
-                      <option value="💙">💙 Blue Heart</option>
-                      <option value="💛">💛 Yellow Heart</option>
-                      <option value="🧡">🧡 Orange Heart</option>
-                      <option value="💜">💜 Purple Heart</option>
-                    </optgroup>
-
-                    <optgroup label="⚡ Energy & Warning">
-                      <option value="⚡">⚡ Lightning</option>
-                      <option value="🔥">🔥 Fire</option>
-                      <option value="💥">💥 Boom</option>
-                      <option value="⚠️">⚠️ Warning</option>
-                      <option value="☢️">☢️ Radioactive</option>
-                      <option value="☣️">☣️ Biohazard</option>
-                      <option value="🚫">🚫 Prohibited</option>
-                      <option value="❌">❌ Cross Mark</option>
-                      <option value="✅">✅ Check</option>
-                      <option value="✔️">✔️ Heavy Check</option>
-                    </optgroup>
-
-                    <optgroup label="🎮 Gaming & Fun">
-                      <option value="🎮">🎮 Controller</option>
-                      <option value="🎯">🎯 Target</option>
-                      <option value="🎲">🎲 Dice</option>
-                      <option value="🎰">🎰 Slot</option>
-                      <option value="🃏">🃏 Joker</option>
-                      <option value="♠️">♠️ Spade</option>
-                      <option value="♥️">♥️ Heart Card</option>
-                      <option value="♦️">♦️ Diamond Card</option>
-                      <option value="♣️">♣️ Club</option>
-                    </optgroup>
+                    <option value="pin">Pin</option>
+                    <option value="compass">Compass</option>
+                    <option value="target">Crosshair</option>
+                    <option value="flag">Flag</option>
+                    <option value="star">Star</option>
+                    <option value="dot">Dot</option>
+                    <option value="rv">RV</option>
+                    <option value="tent">Tent</option>
+                    <option value="fuel">Fuel</option>
+                    <option value="home">Home</option>
                   </select>
                 </div>
               </div>
@@ -2627,35 +1812,35 @@ function MapContextMenu() {
 
   const menuItems = [
     {
-      icon: '📍',
+      icon: 'map',
       label: 'Open in Google Maps',
       action: () => {
         window.open(`https://www.google.com/maps?q=${menuPosition.lat},${menuPosition.lng}`, '_blank', 'noopener,noreferrer')
       }
     },
     {
-      icon: '🗺️',
+      icon: 'compass',
       label: 'Open Google Street View',
       action: () => {
         window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${menuPosition.lat},${menuPosition.lng}`, '_blank', 'noopener,noreferrer')
       }
     },
     {
-      icon: '🌍',
+      icon: 'globe',
       label: 'Open in Google Earth',
       action: () => {
         window.open(`https://earth.google.com/web/@${menuPosition.lat},${menuPosition.lng},0a,1000d,35y,0h,0t,0r`, '_blank', 'noopener,noreferrer')
       }
     },
     {
-      icon: '🧭',
+      icon: 'compass',
       label: 'Directions to Here',
       action: () => {
         window.open(`https://www.google.com/maps/dir/?api=1&destination=${menuPosition.lat},${menuPosition.lng}`, '_blank', 'noopener,noreferrer')
       }
     },
     {
-      icon: '📏',
+      icon: 'ruler',
       label: 'Copy Coordinates',
       action: () => {
         const coords = `${menuPosition.lat.toFixed(6)}, ${menuPosition.lng.toFixed(6)}`
@@ -2664,7 +1849,7 @@ function MapContextMenu() {
       }
     },
     {
-      icon: '📋',
+      icon: 'clipboard',
       label: 'Copy Google Maps Link',
       action: () => {
         const link = `https://www.google.com/maps?q=${menuPosition.lat},${menuPosition.lng}`
@@ -2673,14 +1858,14 @@ function MapContextMenu() {
       }
     },
     {
-      icon: '🎯',
+      icon: 'target',
       label: 'Center Map Here',
       action: () => {
         map.setView([menuPosition.lat, menuPosition.lng], map.getZoom())
       }
     },
     {
-      icon: '🔍',
+      icon: 'search',
       label: 'Zoom In Here',
       action: () => {
         map.setView([menuPosition.lat, menuPosition.lng], Math.min(map.getZoom() + 2, 18))
@@ -2729,7 +1914,7 @@ function MapContextMenu() {
             setMenuPosition(null)
           }}
         >
-          <span style={{ fontSize: '18px' }}>{item.icon}</span>
+          <Icon name={item.icon} size={18} />
           <span>{item.label}</span>
         </div>
       ))}
@@ -4258,7 +3443,7 @@ export default function MapView() {
                 }}
                 title={showWeatherRadar ? 'Weather Radar Settings' : 'Show Weather Radar'}
               >
-                🌧️
+                <Icon name="droplet" size={18} />
               </button>
 
               {/* Weather Radar Controls Popup */}
@@ -4411,7 +3596,7 @@ export default function MapView() {
                         gap: '6px'
                       }}
                     >
-                      🔄 Refresh Radar
+                      Refresh Radar
                     </button>
 
                     <button
@@ -4431,7 +3616,7 @@ export default function MapView() {
                         gap: '6px'
                       }}
                     >
-                      📊 {showRadarLegend ? 'Hide' : 'Show'} Legend
+                      {showRadarLegend ? 'Hide' : 'Show'} Legend
                     </button>
                   </div>
 
@@ -4512,7 +3697,7 @@ export default function MapView() {
                         }}
                         title="Refresh radar data"
                       >
-                        🔄
+                        <Icon name="refresh" size={18} />
                       </button>
                     </div>
 
@@ -4602,7 +3787,7 @@ export default function MapView() {
               }}
               title="Map Settings"
             >
-              ⚙️
+              <Icon name="gear" size={18} />
             </button>
 
             {/* Settings Panel */}
@@ -4636,7 +3821,7 @@ export default function MapView() {
                     alignItems: 'center',
                     gap: '6px'
                   }}>
-                    🗺️ Map Style
+                    Map Style
                   </div>
                   <div style={{
                     display: 'grid',
@@ -4706,7 +3891,7 @@ export default function MapView() {
                     justifyContent: 'space-between'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      ⚠️ Height Restrictions
+                      Height Restrictions
                     </span>
                     <button
                       onClick={() => setShowHeights(!showHeights)}
@@ -5010,7 +4195,7 @@ export default function MapView() {
                     justifyContent: 'space-between'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🚂 Railroad Crossings
+                      Railroad Crossings
                     </span>
                     <button
                       onClick={() => setShowRailroadCrossings(!showRailroadCrossings)}
@@ -5107,7 +4292,7 @@ export default function MapView() {
                     justifyContent: 'space-between'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      📷 Flock (and other) Cameras
+                      Flock (and other) Cameras
                     </span>
                     <button
                       onClick={() => setShowCameras(!showCameras)}
@@ -5293,7 +4478,7 @@ export default function MapView() {
                     justifyContent: 'space-between'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      🌧️ Weather Radar
+                      Weather Radar
                     </span>
                     <button
                       onClick={() => setShowWeatherRadar(!showWeatherRadar)}
@@ -5375,7 +4560,7 @@ export default function MapView() {
                           gap: '6px'
                         }}
                       >
-                        🌤️ Trip Weather Forecast
+                        Trip Weather Forecast
                       </button>
                     </div>
                   )}
@@ -5466,7 +4651,7 @@ export default function MapView() {
                 paddingBottom: '8px',
                 borderBottom: '1px solid var(--border-color)'
               }}>
-                <h4 style={{ margin: 0, fontSize: '14px' }}>🌤️ Trip Weather</h4>
+                <h4 style={{ margin: 0, fontSize: '14px' }}>Trip Weather</h4>
                 <button
                   onClick={() => setShowWeatherPanel(false)}
                   style={{
@@ -5668,7 +4853,7 @@ export default function MapView() {
                         fontSize: isFirstStop || isLastStop ? '14px' : '12px',
                         fontWeight: 'bold'
                       }}>
-                        {isFirstStop ? '🚩' : isLastStop ? '🏁' : stopIndex}
+                        {isFirstStop ? <Icon name="flag" size={14} /> : isLastStop ? <Icon name="flagCheckered" size={14} /> : stopIndex}
                       </span>
                       <div>
                         <h3 style={{ margin: 0, fontSize: '14px' }}>
@@ -5814,8 +4999,8 @@ export default function MapView() {
                         {stopRangeLoading && stopRangeCenter?.lat === stop.latitude
                           ? '⏳ Loading...'
                           : stopRangeCenter?.lat === stop.latitude && stopRangeCenter?.lon === stop.longitude
-                            ? '✓ Range Shown'
-                            : '🚗 Show 30-min Drive Range'}
+                            ? 'Range Shown'
+                            : 'Show 30-min Drive Range'}
                       </button>
                     </div>
 
@@ -5916,14 +5101,14 @@ export default function MapView() {
                 <Popup>
                   <div style={{ minWidth: '280px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '20px' }}>🏕️</span>
+                      <Icon name="tent" size={20} />
                       <div>
                         <h3 style={{ margin: 0, fontSize: '14px', color: '#D97706' }}>
                           Overnight Stop Needed
                         </h3>
                         {gap.estimated_date && (
                           <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#059669', fontWeight: '600' }}>
-                            📅 {new Date(gap.estimated_date).toLocaleDateString('en-US', {
+                            {new Date(gap.estimated_date).toLocaleDateString('en-US', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric'
@@ -5959,7 +5144,7 @@ export default function MapView() {
                         Suggested Search Area
                       </p>
                       <p style={{ margin: 0, fontSize: '11px' }}>
-                        📍 {gap.suggested_area}
+                        {gap.suggested_area}
                       </p>
                       <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#6B7280' }}>
                         {gap.isochrone && gap.isochrone.length > 2
@@ -6021,7 +5206,7 @@ export default function MapView() {
                   <Popup>
                     <div style={{ minWidth: '220px' }}>
                       <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#3B82F6' }}>
-                        🚗 Drive Range from Stop
+                        Drive Range from Stop
                       </h3>
                       <p style={{ margin: '0 0 8px 0', fontSize: '12px' }}>
                         From: <strong>{stopRangeCenter.name}</strong>
@@ -6138,7 +5323,7 @@ export default function MapView() {
                     font-size: 12px;
                     font-weight: bold;
                     color: white;
-                  ">⚠️${count}</div>`,
+                  ">${iconSvg('warn', { size: 12, color: 'white' })}${count}</div>`,
                   className: 'height-cluster-icon',
                   iconSize: L.point(36, 36),
                 })
@@ -6148,7 +5333,7 @@ export default function MapView() {
                 // Determine restriction type - use restriction_type if available, fallback to is_parking_garage
                 const restrictionType = height.restriction_type || (height.is_parking_garage ? 'parking' : 'bridge')
                 const typeLabel = restrictionType === 'parking' ? 'Parking Garage' : restrictionType === 'tunnel' ? 'Tunnel' : 'Bridge/Overpass'
-                const typeEmoji = restrictionType === 'parking' ? '🅿️' : restrictionType === 'tunnel' ? '🚇' : '🌉'
+                const typeIcon = restrictionType === 'parking' ? 'building' : restrictionType === 'tunnel' ? 'clearance' : 'clearance'
                 const isSafe = height.height_feet > userRvHeight
                 const bgColor = !isSafe ? '#FEE2E2' : height.height_feet - userRvHeight <= 5/12 ? '#FEF3C7' : '#D1FAE5'
 
@@ -6167,7 +5352,7 @@ export default function MapView() {
                         alignItems: 'center',
                         gap: '8px'
                       }}>
-                        <span style={{ fontSize: '20px' }}>{typeEmoji}</span>
+                        <Icon name={typeIcon} size={20} />
                         {typeLabel}
                       </h3>
                       <div style={{
@@ -6188,7 +5373,7 @@ export default function MapView() {
                       )}
                       {height.road_name && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
-                          📍 {height.road_name}
+                          {height.road_name}
                         </p>
                       )}
                       {height.description && (
@@ -6233,7 +5418,7 @@ export default function MapView() {
                     font-size: 11px;
                     font-weight: bold;
                     color: white;
-                  ">🚂${count}</div>`,
+                  ">${iconSvg('crossing', { size: 12, color: 'white' })}${count}</div>`,
                   className: 'railroad-cluster-icon',
                   iconSize: L.point(32, 32),
                 })
@@ -6254,7 +5439,7 @@ export default function MapView() {
                         alignItems: 'center',
                         gap: '8px'
                       }}>
-                        <span style={{ fontSize: '20px' }}>🚂</span>
+                        <Icon name="crossing" size={20} />
                         Railroad Crossing
                       </h3>
                       {crossing.onRoute && (
@@ -6268,7 +5453,7 @@ export default function MapView() {
                           borderRadius: '6px',
                           marginBottom: '8px'
                         }}>
-                          📍 ON YOUR ROUTE
+                          ON YOUR ROUTE
                         </div>
                       )}
                       <div style={{
@@ -6280,9 +5465,9 @@ export default function MapView() {
                         borderRadius: '6px',
                         marginBottom: '10px'
                       }}>
-                        {crossing.safety_level === 'protected' ? '✅ Protected (Gates)' :
-                         crossing.safety_level === 'warning' ? '⚠️ Warning Devices' :
-                         '❌ Unprotected'}
+                        {crossing.safety_level === 'protected' ? 'Protected (Gates)' :
+                         crossing.safety_level === 'warning' ? 'Warning Devices' :
+                         'Unprotected'}
                       </div>
                       {crossing.name && crossing.name !== 'Railroad Crossing' && (
                         <p style={{ margin: '5px 0', fontSize: '13px', fontWeight: 'bold' }}>
@@ -6291,19 +5476,19 @@ export default function MapView() {
                       )}
                       {crossing.road_name && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
-                          📍 {crossing.road_name}
+                          {crossing.road_name}
                         </p>
                       )}
                       {crossing.railway_name && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
-                          🛤️ {crossing.railway_name}
+                          {crossing.railway_name}
                         </p>
                       )}
                       <div style={{ fontSize: '12px', marginTop: '8px' }}>
-                        {crossing.gates && <span style={{ marginRight: '8px' }}>🚧 Gates</span>}
-                        {crossing.light && <span style={{ marginRight: '8px' }}>💡 Lights</span>}
-                        {crossing.bell && <span style={{ marginRight: '8px' }}>🔔 Bell</span>}
-                        {crossing.tracks && <span>🛤️ {crossing.tracks} track(s)</span>}
+                        {crossing.gates && <span style={{ marginRight: '8px' }}>Gates</span>}
+                        {crossing.light && <span style={{ marginRight: '8px' }}>Lights</span>}
+                        {crossing.bell && <span style={{ marginRight: '8px' }}>Bell</span>}
+                        {crossing.tracks && <span>{crossing.tracks} track(s)</span>}
                       </div>
                       {/* RV Safety Warnings */}
                       <div style={{
@@ -6317,7 +5502,7 @@ export default function MapView() {
                         marginBottom: '8px'
                       }}>
                         <div style={{ fontWeight: 'bold', color: '#92400E', marginBottom: '4px' }}>
-                          ⚠️ RV Safety Warning
+                          RV Safety Warning
                         </div>
                         <div style={{ color: '#78350F', lineHeight: '1.4' }}>
                           <strong>Ground Clearance:</strong> Cross slowly to avoid bottoming out or high-siding on raised tracks.
@@ -6359,7 +5544,7 @@ export default function MapView() {
                     font-weight: bold;
                     border: 2px solid white;
                     box-shadow: 0 2px 5px rgba(0,0,0,0.4);
-                  ">📷${count}</div>`,
+                  ">${iconSvg('camera', { size: 12, color: 'white' })}${count}</div>`,
                   className: 'camera-cluster-icon',
                   iconSize: L.point(32, 32),
                 })
@@ -6380,7 +5565,7 @@ export default function MapView() {
                         alignItems: 'center',
                         gap: '8px'
                       }}>
-                        <span style={{ fontSize: '20px' }}>📷</span>
+                        <Icon name="camera" size={20} />
                         Surveillance Camera
                       </h3>
                       <div style={{
@@ -6393,13 +5578,13 @@ export default function MapView() {
                         marginBottom: '10px',
                         color: '#991B1B'
                       }}>
-                        {camera.camera_type === 'flock' ? '🚗 Flock ALPR Camera' :
-                         camera.camera_type === 'alpr' ? '🚗 ALPR Camera' :
-                         camera.camera_type === 'traffic' ? '🚦 Traffic Camera' :
-                         camera.camera_type === 'dome' ? '🔵 Dome Camera' :
-                         camera.camera_type === 'ring' ? '🔔 Ring Camera (Police Access)' :
-                         camera.camera_type === 'doorbell' ? '🚪 Doorbell Camera' :
-                         '📹 Surveillance Camera'}
+                        {camera.camera_type === 'flock' ? 'Flock ALPR Camera' :
+                         camera.camera_type === 'alpr' ? 'ALPR Camera' :
+                         camera.camera_type === 'traffic' ? 'Traffic Camera' :
+                         camera.camera_type === 'dome' ? 'Dome Camera' :
+                         camera.camera_type === 'ring' ? 'Ring Camera (Police Access)' :
+                         camera.camera_type === 'doorbell' ? 'Doorbell Camera' :
+                         'Surveillance Camera'}
                       </div>
                       {camera.name && (
                         <p style={{ margin: '5px 0', fontSize: '13px', fontWeight: 'bold' }}>
@@ -6408,22 +5593,22 @@ export default function MapView() {
                       )}
                       {camera.operator && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
-                          👤 Operator: {camera.operator}
+                          Operator: {camera.operator}
                         </p>
                       )}
                       {camera.surveillance_zone && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
-                          📍 Zone: {camera.surveillance_zone}
+                          Zone: {camera.surveillance_zone}
                         </p>
                       )}
                       {camera.networks_shared > 0 && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#DC2626', fontWeight: 'bold' }}>
-                          🔗 Shared with {camera.networks_shared} agencies
+                          Shared with {camera.networks_shared} agencies
                         </p>
                       )}
                       {camera.camera_direction !== null && (
                         <p style={{ margin: '5px 0', fontSize: '12px', color: '#6b7280' }}>
-                          🧭 Direction: {camera.camera_direction}°
+                          Direction: {camera.camera_direction}°
                         </p>
                       )}
                       <div style={{
@@ -6438,7 +5623,7 @@ export default function MapView() {
                         {camera.camera_type === 'ring' || camera.camera_type === 'doorbell' ? (
                           <>
                             <div style={{ fontWeight: 'bold', color: '#DC2626', marginBottom: '6px', fontSize: '12px' }}>
-                              🚨 WARRANTLESS SURVEILLANCE WARNING
+                              WARRANTLESS SURVEILLANCE WARNING
                             </div>
                             <div style={{ color: '#7F1D1D', lineHeight: '1.5', marginBottom: '8px' }}>
                               <strong>Ring cameras enable warrantless government surveillance:</strong>
@@ -6476,13 +5661,13 @@ export default function MapView() {
                                 fontSize: '11px'
                               }}
                             >
-                              📖 Learn more (EFF)
+                              Learn more (EFF)
                             </a>
                           </>
                         ) : camera.camera_type === 'flock' || camera.camera_type === 'alpr' ? (
                           <>
                             <div style={{ fontWeight: 'bold', color: '#DC2626', marginBottom: '6px', fontSize: '12px' }}>
-                              🚨 CRITICAL SECURITY WARNING
+                              CRITICAL SECURITY WARNING
                             </div>
                             <div style={{ color: '#7F1D1D', lineHeight: '1.5', marginBottom: '8px' }}>
                               <strong>Flock/ALPR cameras pose serious privacy and safety risks:</strong>
@@ -6521,7 +5706,7 @@ export default function MapView() {
                                   fontWeight: 'bold'
                                 }}
                               >
-                                🔓 View on Shodan (May be publicly accessible)
+                                View on Shodan (May be publicly accessible)
                               </a>
                             ) : (
                               <a
@@ -6539,14 +5724,14 @@ export default function MapView() {
                                   fontSize: '11px'
                                 }}
                               >
-                                🔍 Search Shodan for nearby cameras
+                                Search Shodan for nearby cameras
                               </a>
                             )}
                           </>
                         ) : (
                           <>
                             <div style={{ fontWeight: 'bold', color: '#92400E', marginBottom: '4px' }}>
-                              ⚠️ Privacy Notice
+                              Privacy Notice
                             </div>
                             <div style={{ color: '#78350F', lineHeight: '1.4' }}>
                               This camera may record video and audio in public spaces.
@@ -6986,18 +6171,18 @@ export default function MapView() {
                     justifyContent: 'center',
                     fontSize: '10px'
                   }}>
-                    {key === 'fuel_stations' && '⛽'}
-                    {key === 'ev_charging' && '🔌'}
-                    {key === 'rest_areas' && '🅿️'}
-                    {key === 'campgrounds' && '⛺'}
-                    {key === 'lodging' && '🏨'}
-                    {key === 'parks' && '🌳'}
-                    {key === 'national_parks' && '🏞️'}
-                    {key === 'shopping' && '🛒'}
-                    {key === 'convenience_stores' && '🏪'}
-                    {key === 'dining' && '🍽️'}
-                    {key === 'dump_stations' && '🚽'}
-                    {key === 'visitor_centers' && 'ℹ️'}
+                    {key === 'fuel_stations' && <Icon name="fuel" size={16} />}
+                    {key === 'ev_charging' && <Icon name="ev" size={16} />}
+                    {key === 'rest_areas' && <Icon name="shelter" size={16} />}
+                    {key === 'campgrounds' && <Icon name="tent" size={16} />}
+                    {key === 'lodging' && <Icon name="bed" size={16} />}
+                    {key === 'parks' && <Icon name="tree" size={16} />}
+                    {key === 'national_parks' && <Icon name="mountain" size={16} />}
+                    {key === 'shopping' && <Icon name="cart" size={16} />}
+                    {key === 'convenience_stores' && <Icon name="store" size={16} />}
+                    {key === 'dining' && <Icon name="food" size={16} />}
+                    {key === 'dump_stations' && <Icon name="droplet" size={16} />}
+                    {key === 'visitor_centers' && <Icon name="pin" size={16} />}
                   </div>
                   <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{category.name}</span>
                 </div>
@@ -7039,7 +6224,7 @@ export default function MapView() {
                 fontWeight: 'bold',
                 color: cacheStats.cache_status === 'empty' ? '#dc2626' : '#16a34a'
               }}>
-                {cacheStats.cache_status === 'empty' ? '⚠️ Empty' : '✓ Populated'}
+                {cacheStats.cache_status === 'empty' ? 'Empty' : 'Populated'}
               </div>
             </div>
 
@@ -7152,7 +6337,7 @@ export default function MapView() {
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '24px' }}>⚠️</span>
+                <Icon name="warn" size={24} />
                 Low Clearance
               </h2>
               <button onClick={() => {

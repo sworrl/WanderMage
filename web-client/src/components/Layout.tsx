@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import QuickSettings from './QuickSettings'
+import Icon from './Icon'
 import { achievements as achievementsApi, system as systemApi } from '../services/api'
 import './Layout.css'
 
@@ -108,49 +109,49 @@ export default function Layout({ children, onLogout }: LayoutProps) {
         <ul className="nav-links">
           <li>
             <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''} title="Dashboard">
-              <span className="nav-icon">📊</span>
+              <span className="nav-icon"><Icon name="dashboard" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Dashboard</span>}
             </Link>
           </li>
           <li>
             <Link to="/trips" className={isActive('/trips') ? 'active' : ''} title="Trips">
-              <span className="nav-icon">🗺️</span>
+              <span className="nav-icon"><Icon name="trips" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Trips</span>}
             </Link>
           </li>
           <li>
             <Link to="/map" className={isActive('/map') ? 'active' : ''} title="Map">
-              <span className="nav-icon">🌍</span>
+              <span className="nav-icon"><Icon name="world" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Map</span>}
             </Link>
           </li>
           <li>
             <Link to="/engage-the-mage" className={isActive('/engage-the-mage') ? 'active' : ''} title="Engage the Mage">
-              <span className="nav-icon">🧙‍♂️</span>
+              <span className="nav-icon"><Icon name="wizard" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Engage the Mage</span>}
             </Link>
           </li>
           <li>
             <Link to="/rv-profiles" className={isActive('/rv-profiles') ? 'active' : ''} title="RV Profiles">
-              <span className="nav-icon">🚐</span>
+              <span className="nav-icon"><Icon name="rv" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">RV Profiles</span>}
             </Link>
           </li>
           <li>
             <Link to="/fuel-logs" className={isActive('/fuel-logs') ? 'active' : ''} title="Fuel Logs">
-              <span className="nav-icon">⛽</span>
+              <span className="nav-icon"><Icon name="fuel" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Fuel Logs</span>}
             </Link>
           </li>
           <li>
             <Link to="/admin" className={isActive('/admin') ? 'active' : ''} title="Admin Panel">
-              <span className="nav-icon">🛠️</span>
+              <span className="nav-icon"><Icon name="tools" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Admin Panel</span>}
             </Link>
           </li>
           <li>
             <Link to="/settings" className={isActive('/settings') ? 'active' : ''} title="Settings">
-              <span className="nav-icon">⚙️</span>
+              <span className="nav-icon"><Icon name="settings" size={20} /></span>
               {!sidebarCollapsed && <span className="nav-text">Settings</span>}
             </Link>
           </li>
@@ -158,7 +159,7 @@ export default function Layout({ children, onLogout }: LayoutProps) {
         <div className="sidebar-footer">
           {!sidebarCollapsed && <QuickSettings />}
           <button onClick={onLogout} className="btn btn-secondary" title="Logout">
-            {sidebarCollapsed ? '🚪' : 'Logout'}
+            {sidebarCollapsed ? <Icon name="logout" size={18} /> : 'Logout'}
           </button>
           {!sidebarCollapsed && version && (
             <div className="version-display" style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '8px' }}>
@@ -172,7 +173,7 @@ export default function Layout({ children, onLogout }: LayoutProps) {
         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
-        {sidebarCollapsed ? '→' : '←'}
+        {sidebarCollapsed ? <Icon name="chevronRight" size={18} /> : <Icon name="chevronLeft" size={18} />}
       </button>
       <main className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         {children}
