@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import Icon from '../components/Icon'
 import { useNavigate } from 'react-router-dom'
 import { overpassSearch, poiSearch, trips } from '../services/api'
@@ -410,7 +411,7 @@ export default function OverpassSearch() {
           </div>
 
           {results.count === 0 ? (
-            <p className="no-results">No results found. Try a different search term or location.</p>
+            <EmptyState title="No results" hint="Try a different search term or location." minHeight={160} />
           ) : (
             <div className="results-grid">
               {results.results.map((result) => (

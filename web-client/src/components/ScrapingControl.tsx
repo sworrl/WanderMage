@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import EmptyState from './fx/EmptyState'
 import { scraping } from '../services/api'
 import Icon from './Icon'
 
@@ -418,9 +419,7 @@ export default function ScrapingControl() {
       <div>
         <h3 style={{ marginBottom: '10px' }}>Crawl History</h3>
         {crawlHistory.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            No crawl history yet
-          </div>
+          <EmptyState title="No crawl history yet" minHeight={140} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {crawlHistory.map(crawl => (

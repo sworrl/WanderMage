@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import Icon from '../components/Icon'
 import { useNavigate } from 'react-router-dom'
 import { overpassSearch, poiSearch, trips } from '../services/api'
@@ -503,10 +504,7 @@ export default function EngageTheMage() {
           </div>
 
           {results.count === 0 ? (
-            <div className="no-results">
-              <span className="no-results-icon"><Icon name="star" size={20} /></span>
-              <p>The Mage found no results. Try a different search term or location.</p>
-            </div>
+            <EmptyState title="No matches" hint="Try a different search term or location." minHeight={160} />
           ) : (
             <div className="results-grid">
               {results.results.map((result) => (
