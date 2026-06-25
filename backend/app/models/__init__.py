@@ -11,6 +11,7 @@ from .harvest_host import HarvestHost
 from .harvest_host_stay import HarvestHostStay
 from .scraper_status import ScraperStatus
 from .weather_forecast import WeatherForecast, WeatherAlert
+from .poi_rating import POIRating
 
 __all__ = [
     "AchievementDefinition",
@@ -31,4 +32,5 @@ __all__ = [
     "ScraperStatus",
     "WeatherForecast",
     "WeatherAlert",
+    "POIRating",
 ]

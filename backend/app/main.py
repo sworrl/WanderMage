@@ -12,7 +12,7 @@ from .api import (
     settings as settings_api, crawl_status, user_preferences, overpass_heights,
     railroad_crossings, weight_restrictions, achievements, fuel_prices, import_stops,
     overpass_search, pois_bbox, roles, scraping_control, weather, harvest_hosts,
-    api_keys, scraper_dashboard, serialization
+    api_keys, scraper_dashboard, serialization, ratings
 )
 from .services.scheduler import start_scheduler, stop_scheduler
 
@@ -75,6 +75,7 @@ app.include_router(harvest_hosts.router, prefix="/api/harvest-hosts", tags=["Har
 app.include_router(api_keys.router, prefix="/api/api-keys", tags=["API Keys"])
 app.include_router(scraper_dashboard.router, prefix="/api/scraper-dashboard", tags=["Scraper Dashboard"])
 app.include_router(serialization.router, prefix="/api/serialization", tags=["Serialization"])
+app.include_router(ratings.router, prefix="/api/ratings", tags=["Ratings"])
 
 
 # Health check endpoint (no auth required)

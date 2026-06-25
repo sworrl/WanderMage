@@ -299,4 +299,11 @@ export const weather = {
     api.get('/weather/ip-location'),
 }
 
+export const ratings = {
+  dimensions: (category: string) => api.get(`/ratings/dimensions/${category}`),
+  summary: (serial: string) => api.get(`/ratings/${serial}`),
+  create: (data: { poi_serial: string; category?: string; overall: number; dimensions: Record<string, number>; comment?: string }) =>
+    api.post('/ratings', data),
+}
+
 export default api

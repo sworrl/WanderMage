@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css'
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.css'
 import 'react-leaflet-cluster/dist/assets/MarkerCluster.Default.css'
 import L from 'leaflet'
+import RatingWidget from '../components/RatingWidget'
 
 const HolidayEffects = () => {
   const [effects, setEffects] = useState<HolidayEffect>(null)
@@ -3711,6 +3712,7 @@ export default function MapView() {
       // Convert backend format to frontend format
       const convertedPois: POI[] = poisData.map((poi: any) => ({
         id: poi.id,
+        serial: poi.serial,
         lat: poi.latitude,
         lon: poi.longitude,
         name: poi.name || 'Unnamed',
@@ -6091,9 +6093,10 @@ export default function MapView() {
                       <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
                         {category.name}
                       </p>
+                      <RatingWidget poiSerial={poi.serial || String(poi.id)} category={poi.type} />
                       {poi.tags.phone && (
                         <p style={{ margin: '5px 0 0 0', fontSize: '12px' }}>
-                          📞 {poi.tags.phone}
+                          {poi.tags.phone}
                         </p>
                       )}
                       {poi.tags.website && (

@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     POI_DATABASE_URL: str = ""  # POI database (campgrounds, fuel stations, etc.)
     ROAD_DATABASE_URL: str = ""  # Road hazards database (overpass heights, railroad crossings)
 
+    # Review federation (optional). Empty MASTER_REVIEWS_URL = standalone, no federation.
+    MASTER_REVIEWS_URL: str = ""
+    NODE_ID: str = "foss-node"
+
     # Security
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
