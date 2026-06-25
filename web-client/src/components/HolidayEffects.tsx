@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import Icon from './Icon'
 import { Z_INDEX } from '../styles/zIndex'
 
 // Firework type for fully randomized fireworks - all animation is CSS-driven
@@ -326,77 +327,77 @@ export function getCurrentHoliday(): HolidayInfo | null {
 
   // New Year's Day: Jan 1-2
   if (month === 0 && day <= 2) {
-    return { effect: 'fireworks', name: 'New Year', emoji: '🎆' }
+    return { effect: 'fireworks', name: 'New Year' }
   }
   // MLK Day: 3rd Monday of January
   if (month === 0) {
     const mlkDay = getNthWeekday(year, 0, 1, 3)
     if (day >= mlkDay - 3 && day <= mlkDay) {
-      return { effect: 'flags', name: 'MLK Day', emoji: '🇺🇸' }
+      return { effect: 'flags', name: 'MLK Day' }
     }
   }
   // Valentine's Day: Feb 12-14
   if (month === 1 && day >= 12 && day <= 14) {
-    return { effect: 'hearts', name: "Valentine's Day", emoji: '❤️' }
+    return { effect: 'hearts', name: "Valentine's Day" }
   }
   // Presidents' Day: 3rd Monday of February
   if (month === 1) {
     const presDay = getNthWeekday(year, 1, 1, 3)
     if (day >= presDay - 2 && day <= presDay) {
-      return { effect: 'flags', name: "Presidents' Day", emoji: '🇺🇸' }
+      return { effect: 'flags', name: "Presidents' Day" }
     }
   }
   // St. Patrick's Day: March 15-17
   if (month === 2 && day >= 15 && day <= 17) {
-    return { effect: 'shamrocks', name: "St. Patrick's Day", emoji: '☘️' }
+    return { effect: 'shamrocks', name: "St. Patrick's Day" }
   }
   // Easter: Variable
   if ((month === 2 && day >= 28) || (month === 3 && day <= 25)) {
     const easter = getEasterDate(year)
     if (Math.abs(now.getTime() - easter.getTime()) < 3 * 24 * 60 * 60 * 1000) {
-      return { effect: 'eggs', name: 'Easter', emoji: '🐰' }
+      return { effect: 'eggs', name: 'Easter' }
     }
   }
   // Memorial Day: Last Monday of May
   if (month === 4) {
     const memDay = getLastWeekday(year, 4, 1)
     if (day >= memDay - 3 && day <= memDay) {
-      return { effect: 'flags', name: 'Memorial Day', emoji: '🇺🇸' }
+      return { effect: 'flags', name: 'Memorial Day' }
     }
   }
   // Independence Day: July 1-4
   if (month === 6 && day >= 1 && day <= 4) {
-    return { effect: 'fireworks-usa', name: 'Independence Day', emoji: '🎇' }
+    return { effect: 'fireworks-usa', name: 'Independence Day' }
   }
   // Labor Day: 1st Monday of September
   if (month === 8) {
     const laborDay = getNthWeekday(year, 8, 1, 1)
     if (day >= laborDay - 2 && day <= laborDay) {
-      return { effect: 'flags', name: 'Labor Day', emoji: '🇺🇸' }
+      return { effect: 'flags', name: 'Labor Day' }
     }
   }
   // Halloween: Oct 28-31
   if (month === 9 && day >= 28 && day <= 31) {
-    return { effect: 'spooky', name: 'Halloween', emoji: '🎃' }
+    return { effect: 'spooky', name: 'Halloween' }
   }
   // Veterans Day: Nov 10-11
   if (month === 10 && day >= 10 && day <= 11) {
-    return { effect: 'flags', name: 'Veterans Day', emoji: '🇺🇸' }
+    return { effect: 'flags', name: 'Veterans Day' }
   }
   // Thanksgiving: 4th Thursday of November
   if (month === 10) {
     const thanksgiving = getNthWeekday(year, 10, 4, 4)
     if (day >= thanksgiving - 1 && day <= thanksgiving + 1) {
-      return { effect: 'leaves', name: 'Thanksgiving', emoji: '🦃' }
+      return { effect: 'leaves', name: 'Thanksgiving' }
     }
   }
   // Christmas season: Dec 20 - Dec 26 (through the day after Christmas)
   if (month === 11 && day >= 20 && day <= 26) {
-    return { effect: 'snow', name: 'Christmas', emoji: '🎄' }
+    return { effect: 'snow', name: 'Christmas' }
   }
   // New Year's Eve: Dec 27-31 (leading up to and including NYE)
   if (month === 11 && day >= 27 && day <= 31) {
-    return { effect: 'fireworks', name: "New Year's Eve", emoji: '🎇' }
+    return { effect: 'fireworks', name: "New Year's Eve" }
   }
 
   return null
@@ -561,7 +562,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
             animation: `float-up ${heart.duration}s ease-in-out ${heart.delay}s infinite`,
             color: `hsl(${340 + Math.random() * 20}, 80%, 60%)`
           }}>
-            ❤️
+            <Icon name="heart" size={heart.size} />
           </div>
         ))}
       </div>
@@ -599,7 +600,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
             opacity: s.opacity,
             animation: `shamrock-fall ${s.duration}s linear ${s.delay}s infinite`
           }}>
-            ☘️
+            <Icon name="leaf" size={s.size} />
           </div>
         ))}
       </div>
@@ -608,7 +609,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
 
   // Easter eggs effect
   if (effect === 'eggs') {
-    const eggs = ['🥚', '🐣', '🐰', '🌷', '🥕']
+    const eggs = ['star', 'heart', 'spark', 'leaf', 'paw']
     const items = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -639,7 +640,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
             opacity: item.opacity,
             animation: `egg-fall ${item.duration}s linear ${item.delay}s infinite`
           }}>
-            {item.emoji}
+            <Icon name={item.emoji} size={item.size} />
           </div>
         ))}
       </div>
@@ -678,7 +679,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
             opacity: flag.opacity,
             animation: `flag-wave ${flag.duration}s ease-in-out ${flag.delay}s infinite`
           }}>
-            🇺🇸
+            <Icon name="flag" size={flag.size} />
           </div>
         ))}
       </div>
@@ -687,7 +688,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
 
   // Spooky effect for Halloween
   if (effect === 'spooky') {
-    const spookyItems = ['🎃', '👻', '🦇', '🕷️', '💀', '🕸️']
+    const spookyItems = ['moon', 'star', 'spark', 'flame']
     const items = Array.from({ length: 25 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -721,7 +722,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
             opacity: item.opacity,
             animation: `spooky-float ${item.duration}s ease-in-out ${item.delay}s infinite`
           }}>
-            {item.emoji}
+            <Icon name={item.emoji} size={item.size} />
           </div>
         ))}
       </div>
@@ -730,7 +731,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
 
   // Leaves effect for Thanksgiving
   if (effect === 'leaves') {
-    const leafEmojis = ['🍂', '🍁', '🦃', '🌽', '🥧']
+    const leafEmojis = ['leaf', 'star', 'spark']
     const leaves = Array.from({ length: 30 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -764,7 +765,7 @@ export default function HolidayEffects({ enabled = true }: { enabled?: boolean }
             opacity: leaf.opacity,
             animation: `leaf-fall ${leaf.duration}s ease-in-out ${leaf.delay}s infinite`
           }}>
-            {leaf.emoji}
+            <Icon name={leaf.emoji} size={leaf.size} />
           </div>
         ))}
       </div>

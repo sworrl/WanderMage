@@ -5,22 +5,22 @@ export default function ThemeSelector() {
   const { themeName, setTheme } = useTheme();
 
   const themePreview: Record<ThemeName, { emoji: string; description: string }> = {
-    midnight: { emoji: '🌙', description: 'Deep dark with purple accents' },
-    ocean: { emoji: '🌊', description: 'Blue depths and calm waves' },
-    forest: { emoji: '🌲', description: 'Natural greens and earth tones' },
-    sunset: { emoji: '🌅', description: 'Warm oranges and amber hues' },
-    desert: { emoji: '🏜️', description: 'Sandy browns and sunset gold' },
-    light: { emoji: '☀️', description: 'Bright and clean interface' },
-    crimson: { emoji: '🔴', description: 'Dark crimson with red accents' },
-    nord: { emoji: '❄️', description: 'Cool arctic blues and grays' },
-    vampire: { emoji: '🧛', description: 'Dark purple with mystical vibes' },
-    synthwave: { emoji: '🌃', description: 'Retro pink and cyan neon' },
-    matrix: { emoji: '💚', description: 'Green on black hacker style' },
-    dracula: { emoji: '🦇', description: 'Purple and pink dark theme' },
-    monokai: { emoji: '🟡', description: 'Yellow and green code style' },
-    cobalt: { emoji: '💙', description: 'Deep blue with bright accents' },
-    gruvbox: { emoji: '🟤', description: 'Warm retro browns and oranges' },
-    solarized: { emoji: '🌞', description: 'Classic beige and blue theme' },
+    midnight: { emoji: '', description: 'Deep dark with purple accents' },
+    ocean: { emoji: '', description: 'Blue depths and calm waves' },
+    forest: { emoji: '', description: 'Natural greens and earth tones' },
+    sunset: { emoji: '', description: 'Warm oranges and amber hues' },
+    desert: { emoji: '', description: 'Sandy browns and sunset gold' },
+    light: { emoji: '', description: 'Bright and clean interface' },
+    crimson: { emoji: '', description: 'Dark crimson with red accents' },
+    nord: { emoji: '', description: 'Cool arctic blues and grays' },
+    vampire: { emoji: '', description: 'Dark purple with mystical vibes' },
+    synthwave: { emoji: '', description: 'Retro pink and cyan neon' },
+    matrix: { emoji: '', description: 'Green on black hacker style' },
+    dracula: { emoji: '', description: 'Purple and pink dark theme' },
+    monokai: { emoji: '', description: 'Yellow and green code style' },
+    cobalt: { emoji: '', description: 'Deep blue with bright accents' },
+    gruvbox: { emoji: '', description: 'Warm retro browns and oranges' },
+    solarized: { emoji: '', description: 'Classic beige and blue theme' },
   };
 
   return (

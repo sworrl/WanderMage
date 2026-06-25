@@ -67,6 +67,15 @@ const GLYPHS: Record<string, string> = {
   camera: '<rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7 l1.5-2.5 h5 L16 7"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2 v2 M12 20 v2 M2 12 h2 M20 12 h2 M5 5 l1.4 1.4 M17.6 17.6 L19 19 M19 5 l-1.4 1.4 M6.4 17.6 L5 19"/>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="16" y1="3" x2="16" y2="6"/>',
+  anchor: '<circle cx="12" cy="5" r="2"/><line x1="12" y1="7" x2="12" y2="20"/><path d="M5 13 a7 7 0 0 0 14 0"/><line x1="8" y1="12" x2="16" y2="12"/>',
+  users: '<circle cx="9" cy="8" r="3"/><path d="M3.5 20 a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5 a3 3 0 0 1 0 5.5 M17 13.5 a6 6 0 0 1 3.5 5.5"/>',
+  key: '<circle cx="8" cy="12" r="4"/><line x1="12" y1="12" x2="21" y2="12"/><line x1="18" y1="12" x2="18" y2="16"/><line x1="21" y1="12" x2="21" y2="15"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11 V8 a4 4 0 0 1 8 0 v3"/>',
+  database: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6 v12 a7 3 0 0 0 14 0 V6"/><path d="M5 12 a7 3 0 0 0 14 0"/>',
+  menu: '<line x1="4" y1="8" x2="20" y2="8"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="16" x2="20" y2="16"/>',
+  heart: '<path d="M12 20 C5 14 3 10 3 7.5 A4.5 4.5 0 0 1 12 6 A4.5 4.5 0 0 1 21 7.5 C21 10 19 14 12 20 z"/>',
+  leaf: '<path d="M5 19 C5 9 12 4 20 4 C20 14 13 19 5 19 z"/><line x1="5" y1="19" x2="13" y2="11"/>',
+  spark: '<path d="M12 3 l1.6 6.4 L20 11 l-6.4 1.6 L12 19 l-1.6-6.4 L4 11 l6.4-1.6 z"/>',
   wash: '<path d="M6 11 a6 6 0 0 1 12 0"/><line x1="12" y1="3" x2="12" y2="5"/><line x1="8" y1="15" x2="7" y2="18"/><line x1="12" y1="15.5" x2="11" y2="19"/><line x1="16" y1="15" x2="15" y2="18"/>',
 }
 

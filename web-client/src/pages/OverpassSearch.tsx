@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Icon from '../components/Icon'
 import { useNavigate } from 'react-router-dom'
 import { overpassSearch, poiSearch, trips } from '../services/api'
 import './OverpassSearch.css'
@@ -326,7 +327,7 @@ export default function OverpassSearch() {
                   className="location-option current-location"
                   disabled={gettingLocation}
                 >
-                  <span className="location-icon">📍</span>
+                  <span className="location-icon"><Icon name="pin" size={16} /></span>
                   <div className="location-text">
                     <span className="location-label">
                       {gettingLocation ? 'Getting location...' : 'Use Current Location'}
@@ -349,7 +350,7 @@ export default function OverpassSearch() {
                         onClick={() => selectLocation(option)}
                         className="location-option"
                       >
-                        <span className="location-icon">🗺️</span>
+                        <span className="location-icon"><Icon name="map" size={16} /></span>
                         <div className="location-text">
                           <span className="location-label">{option.label}</span>
                           {option.sublabel && (

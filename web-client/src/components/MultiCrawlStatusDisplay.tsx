@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from './Icon'
 import axios from 'axios';
 import { safeStorage } from '../utils/storage';
 import './MultiCrawlStatusDisplay.css';
@@ -128,17 +129,17 @@ export default function MultiCrawlStatusDisplay() {
   const getStatusIcon = (status: string): string => {
     switch (status) {
       case 'running':
-        return '⚡';
+        return 'refresh';
       case 'completed':
-        return '✓';
+        return 'check';
       case 'failed':
-        return '✗';
+        return 'cross';
       case 'paused':
-        return '⏸';
+        return 'pause';
       case 'rate_limited':
         return '⏳';
       default:
-        return '○';
+        return 'dot';
     }
   };
 
@@ -215,7 +216,7 @@ export default function MultiCrawlStatusDisplay() {
                     className="status-icon-large"
                     style={{ color: getStatusColor(status.status) }}
                   >
-                    {status.icon || getStatusIcon(status.status)}
+                    <Icon name={status.icon || getStatusIcon(status.status)} size={16} />
                   </span>
                   <div className="crawler-title-info">
                     <h3>{status.display_name}</h3>

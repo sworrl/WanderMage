@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Icon from '../components/Icon'
 import { settings, auth, users as usersApi, credentials as credentialsApi } from '../services/api'
 import ScraperDashboard from '../components/ScraperDashboard'
 import SerializationManager from '../components/SerializationManager'
@@ -530,42 +531,42 @@ export default function AdminPanel() {
           className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          <span className="tab-icon">👥</span>
+          <span className="tab-icon"><Icon name="users" size={16} /></span>
           Users
         </button>
         <button
           className={`tab-btn ${activeTab === 'api-keys' ? 'active' : ''}`}
           onClick={() => setActiveTab('api-keys')}
         >
-          <span className="tab-icon">🔑</span>
+          <span className="tab-icon"><Icon name="key" size={16} /></span>
           API Keys
         </button>
         <button
           className={`tab-btn ${activeTab === 'scraping' ? 'active' : ''}`}
           onClick={() => setActiveTab('scraping')}
         >
-          <span className="tab-icon">🕷️</span>
+          <span className="tab-icon"><Icon name="search" size={16} /></span>
           Scraping
         </button>
         <button
           className={`tab-btn ${activeTab === 'serialization' ? 'active' : ''}`}
           onClick={() => setActiveTab('serialization')}
         >
-          <span className="tab-icon">🔢</span>
+          <span className="tab-icon"><Icon name="ruler" size={16} /></span>
           Serialization
         </button>
         <button
           className={`tab-btn ${activeTab === 'ssl' ? 'active' : ''}`}
           onClick={() => setActiveTab('ssl')}
         >
-          <span className="tab-icon">🔒</span>
+          <span className="tab-icon"><Icon name="lock" size={16} /></span>
           SSL
         </button>
         <button
           className={`tab-btn ${activeTab === 'database' ? 'active' : ''}`}
           onClick={() => setActiveTab('database')}
         >
-          <span className="tab-icon">🗄️</span>
+          <span className="tab-icon"><Icon name="database" size={16} /></span>
           Database
         </button>
       </div>
@@ -731,7 +732,7 @@ export default function AdminPanel() {
               {eiaKeyStatus?.configured ? (
                 <div>
                   <div className="key-status key-configured">
-                    <span className="status-icon">✅</span>
+                    <span className="status-icon"><Icon name="check" size={16} /></span>
                     <span>API Key Configured</span>
                   </div>
 
@@ -773,7 +774,7 @@ export default function AdminPanel() {
               ) : (
                 <div>
                   <div className="key-status key-missing">
-                    <span className="status-icon">⚠️</span>
+                    <span className="status-icon"><Icon name="warn" size={16} /></span>
                     <span>API Key Not Configured</span>
                   </div>
                   <p className="key-note">
@@ -857,7 +858,7 @@ export default function AdminPanel() {
               {hhStatus?.configured ? (
                 <div>
                   <div className="key-status key-configured">
-                    <span className="status-icon">✅</span>
+                    <span className="status-icon"><Icon name="check" size={16} /></span>
                     <span>Credentials Configured</span>
                   </div>
 
@@ -892,7 +893,7 @@ export default function AdminPanel() {
               ) : (
                 <div>
                   <div className="key-status key-missing">
-                    <span className="status-icon">⚠️</span>
+                    <span className="status-icon"><Icon name="warn" size={16} /></span>
                     <span>Credentials Not Configured</span>
                   </div>
                   <p className="key-note">
@@ -987,19 +988,19 @@ export default function AdminPanel() {
               <h3>Current Certificate</h3>
               {!sslInfo?.installed ? (
                 <div className="cert-status cert-none">
-                  <span className="status-icon">⚠️</span>
+                  <span className="status-icon"><Icon name="warn" size={16} /></span>
                   <span>No SSL certificate installed</span>
                 </div>
               ) : !sslInfo.valid ? (
                 <div className="cert-status cert-invalid">
-                  <span className="status-icon">❌</span>
+                  <span className="status-icon"><Icon name="cross" size={16} /></span>
                   <span>Invalid certificate: {sslInfo.error || sslInfo.message}</span>
                 </div>
               ) : (
                 <>
                   <div className={`cert-status ${isExpired() ? 'cert-expired' : isExpiringSoon() ? 'cert-warning' : 'cert-valid'}`}>
                     <span className="status-icon">
-                      {isExpired() ? '❌' : isExpiringSoon() ? '⚠️' : '✅'}
+                      <Icon name={isExpired() ? 'cross' : isExpiringSoon() ? 'warn' : 'check'} size={16} />
                     </span>
                     <span>
                       {isExpired() ? 'Certificate Expired' : isExpiringSoon() ? 'Expires Soon' : 'Valid Certificate'}
@@ -1133,7 +1134,7 @@ export default function AdminPanel() {
                 <>
                   <div className={`cert-status ${credentialStatus.security_check.is_secure ? 'cert-valid' : 'cert-warning'}`}>
                     <span className="status-icon">
-                      {credentialStatus.security_check.is_secure ? '✅' : '⚠️'}
+                      <Icon name={credentialStatus.security_check.is_secure ? 'check' : 'warn'} size={16} />
                     </span>
                     <span>
                       {credentialStatus.security_check.is_secure

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import Icon from '../components/Icon'
 import { useNavigate } from 'react-router-dom'
 import { overpassSearch, poiSearch, trips } from '../services/api'
 import './EngageTheMage.css'
@@ -248,7 +249,7 @@ export default function EngageTheMage() {
   return (
     <div className="engage-the-mage">
       <div className="mage-header">
-        <div className="mage-icon">🧙‍♂️</div>
+        <div className="mage-icon"><Icon name="wizard" size={28} /></div>
         <div className="mage-title">
           <h1>Engage the Mage</h1>
           <p className="mage-subtitle">Summon points of interest with the power of arcane knowledge</p>
@@ -261,7 +262,7 @@ export default function EngageTheMage() {
           className="capabilities-toggle"
           onClick={() => setShowCapabilities(!showCapabilities)}
         >
-          <span className="spell-icon">✨</span>
+          <span className="spell-icon"><Icon name="spark" size={16} /></span>
           {showCapabilities ? 'Hide' : 'Reveal'} the Mage's Powers
           <span className={`toggle-arrow ${showCapabilities ? 'open' : ''}`}>▼</span>
         </button>
@@ -274,7 +275,7 @@ export default function EngageTheMage() {
 
             <div className="capabilities-grid">
               <div className="capability-card">
-                <h4>🔮 Simple Searches</h4>
+                <h4>Simple Searches</h4>
                 <p>Natural language queries work great:</p>
                 <ul>
                   <li>"Gas stations near Denver, CO"</li>
@@ -285,7 +286,7 @@ export default function EngageTheMage() {
               </div>
 
               <div className="capability-card">
-                <h4>📜 Specific Categories</h4>
+                <h4>Specific Categories</h4>
                 <p>Search by exact POI types:</p>
                 <ul>
                   <li>"Truck stops" - Major fuel stops</li>
@@ -297,7 +298,7 @@ export default function EngageTheMage() {
               </div>
 
               <div className="capability-card">
-                <h4>⚗️ Brand & Operator</h4>
+                <h4>Brand & Operator</h4>
                 <p>Find specific chains or operators:</p>
                 <ul>
                   <li>"Pilot Flying J near I-70"</li>
@@ -309,7 +310,7 @@ export default function EngageTheMage() {
               </div>
 
               <div className="capability-card deep-search-card">
-                <h4>🌟 Deep Search Powers</h4>
+                <h4>Deep Search Powers</h4>
                 <p>Enable <strong>Deep Search</strong> to unlock:</p>
                 <ul>
                   <li>Real-time OpenStreetMap queries</li>
@@ -318,12 +319,12 @@ export default function EngageTheMage() {
                   <li>Obscure POI types</li>
                   <li>Most up-to-date data</li>
                 </ul>
-                <p className="deep-note">⚠️ Deep Search is slower but more comprehensive</p>
+                <p className="deep-note">Deep Search is slower but more comprehensive</p>
               </div>
             </div>
 
             <div className="capability-examples">
-              <h4>🎯 Example Searches</h4>
+              <h4>Example Searches</h4>
               <div className="example-chips">
                 <button onClick={() => setQuery('State parks near Austin, TX')}>State parks near Austin</button>
                 <button onClick={() => setQuery('Propane near 38.9972, -90.7444')}>Propane refill</button>
@@ -340,7 +341,7 @@ export default function EngageTheMage() {
       <form onSubmit={handleSearch} className="search-form">
         <div className="search-input-container">
           <div className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
+            <span className="search-icon"><Icon name="search" size={16} /></span>
             <input
               type="text"
               value={query}
@@ -352,12 +353,12 @@ export default function EngageTheMage() {
           <button type="submit" disabled={loading || !query.trim()} className="btn btn-primary search-btn">
             {loading ? (
               <>
-                <span className="casting">⚡</span>
+                <span className="casting"><Icon name="spark" size={16} /></span>
                 Casting...
               </>
             ) : (
               <>
-                <span>🪄</span>
+                <span><Icon name="spark" size={16} /></span>
                 Search
               </>
             )}
@@ -396,7 +397,7 @@ export default function EngageTheMage() {
                 onClick={() => setShowLocationPicker(!showLocationPicker)}
                 className="btn btn-secondary"
               >
-                📍 Pick Location
+                Pick Location
               </button>
               {showLocationPicker && (
                 <div className="location-picker-dropdown">
@@ -406,7 +407,7 @@ export default function EngageTheMage() {
                     className="location-option current-location"
                     disabled={gettingLocation}
                   >
-                    <span className="location-icon">📍</span>
+                    <span className="location-icon"><Icon name="pin" size={16} /></span>
                     <div className="location-text">
                       <span className="location-label">
                         {gettingLocation ? 'Getting location...' : 'Use Current Location'}
@@ -429,7 +430,7 @@ export default function EngageTheMage() {
                           onClick={() => selectLocation(option)}
                           className="location-option"
                         >
-                          <span className="location-icon">🗺️</span>
+                          <span className="location-icon"><Icon name="map" size={16} /></span>
                           <div className="location-text">
                             <span className="location-label">{option.label}</span>
                             {option.sublabel && (
@@ -445,7 +446,7 @@ export default function EngageTheMage() {
             </div>
 
             <button type="button" onClick={loadSuggestions} className="btn btn-secondary">
-              💡 {showSuggestions ? 'Hide' : 'Show'} Ideas
+              {showSuggestions ? 'Hide' : 'Show'} Ideas
             </button>
 
             <label className="deep-search-toggle">
@@ -455,7 +456,7 @@ export default function EngageTheMage() {
                 onChange={(e) => setUseDeepSearch(e.target.checked)}
               />
               <span className="toggle-label">
-                🌟 Deep Search
+                Deep Search
               </span>
             </label>
           </div>
@@ -464,7 +465,7 @@ export default function EngageTheMage() {
 
       {showSuggestions && suggestions && (
         <div className="suggestions-panel">
-          <h3>💡 Search Ideas</h3>
+          <h3>Search Ideas</h3>
           <p className="tip">{suggestions.tip}</p>
           <div className="categories">
             {Object.entries(suggestions.categories).map(([category, terms]) => (
@@ -487,12 +488,12 @@ export default function EngageTheMage() {
         </div>
       )}
 
-      {error && <div className="error-message">⚠️ {error}</div>}
+      {error && <div className="error-message">{error}</div>}
 
       {results && (
         <div className="results-section">
           <div className="results-header">
-            <h2>🎯 Results</h2>
+            <h2>Results</h2>
             <div className="results-meta">
               <span>Found <strong>{results.count}</strong> results</span>
               <span>for "{results.search_term}"</span>
@@ -503,7 +504,7 @@ export default function EngageTheMage() {
 
           {results.count === 0 ? (
             <div className="no-results">
-              <span className="no-results-icon">🔮</span>
+              <span className="no-results-icon"><Icon name="star" size={20} /></span>
               <p>The Mage found no results. Try a different search term or location.</p>
             </div>
           ) : (
@@ -526,28 +527,28 @@ export default function EngageTheMage() {
                   <div className="result-details">
                     {result.phone && (
                       <a href={`tel:${result.phone}`} className="detail-link">
-                        📞 {result.phone}
+                        {result.phone}
                       </a>
                     )}
                     {result.website && (
                       <a href={result.website} target="_blank" rel="noopener noreferrer" className="detail-link">
-                        🌐 Website
+                        Website
                       </a>
                     )}
                     {result.opening_hours && (
-                      <span className="detail-hours">🕐 {result.opening_hours}</span>
+                      <span className="detail-hours">{result.opening_hours}</span>
                     )}
                   </div>
 
                   <div className="result-actions">
                     <button onClick={() => showOnMap(result)} className="btn btn-sm btn-primary">
-                      🗺️ Map
+                      Map
                     </button>
                     <button onClick={() => openStreetView(result.latitude, result.longitude)} className="btn btn-sm btn-secondary">
-                      👁️ Street View
+                      Street View
                     </button>
                     <button onClick={() => openDirections(result.latitude, result.longitude)} className="btn btn-sm btn-secondary">
-                      🧭 Directions
+                      Directions
                     </button>
                   </div>
                 </div>

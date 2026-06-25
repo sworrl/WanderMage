@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import Icon from '../components/Icon'
 import { useParams } from 'react-router-dom'
 import { trips as tripsApi } from '../services/api'
 import { US_STATE_PATHS } from '../data/usStatePaths'
@@ -91,24 +92,24 @@ interface StopData {
 
 // Category icon mapping
 const CATEGORY_ICONS: Record<string, string> = {
-  'winery': '🍷',
-  'brewery': '🍺',
-  'distillery': '🥃',
-  'cidery': '🍎',
-  'restaurant': '🍽️',
-  'farm': '🌾',
-  'campground': '⛺',
-  'rv_park': '🚐',
-  'museum': '🏛️',
-  'golf': '⛳',
-  'marina': '⚓',
-  'gas_station': '⛽',
-  'hotel': '🏨',
-  'attraction': '🎢',
-  'store': '🛒',
-  'harvest_host': '🌾',
-  'boondocking': '🏕️',
-  'other': '📍'
+  'winery': 'food',
+  'brewery': 'food',
+  'distillery': 'food',
+  'cidery': 'food',
+  'restaurant': 'food',
+  'farm': 'tree',
+  'campground': 'tent',
+  'rv_park': 'rv',
+  'museum': 'building',
+  'golf': 'flag',
+  'marina': 'anchor',
+  'gas_station': 'fuel',
+  'hotel': 'bed',
+  'attraction': 'star',
+  'store': 'cart',
+  'harvest_host': 'tree',
+  'boondocking': 'tent',
+  'other': 'pin'
 }
 
 // Category color mapping
@@ -133,7 +134,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'other': '#6366f1'
 }
 
-const getCategoryIcon = (category?: string) => CATEGORY_ICONS[category || 'other'] || '📍'
+const getCategoryIcon = (category?: string) => CATEGORY_ICONS[category || 'other'] || 'pin'
 const getCategoryColor = (category?: string) => CATEGORY_COLORS[category || 'other'] || '#6366f1'
 
 // Gap analysis result interface
@@ -656,7 +657,7 @@ export default function TripDetail() {
                 </>
               ) : (
                 <>
-                  🔄 Recalculate Route
+                  Recalculate Route
                 </>
               )}
             </button>
@@ -677,7 +678,7 @@ export default function TripDetail() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📷</span> Surveillance Exposure Analysis
+              <Icon name="camera" size={16} /> Surveillance Exposure Analysis
             </h2>
             {cameraAnalysis && (
               <button
@@ -834,10 +835,10 @@ export default function TripDetail() {
                          cameraAnalysis.tracking_percentage > 50 ? '#D97706' : '#059669',
                   marginBottom: '6px'
                 }}>
-                  {cameraAnalysis.tracking_percentage > 75 ? '🚨 Heavy Surveillance Route' :
-                   cameraAnalysis.tracking_percentage > 50 ? '⚠️ Moderate Surveillance' :
-                   cameraAnalysis.tracking_percentage > 25 ? '📷 Light Surveillance' :
-                   '✓ Low Surveillance Route'}
+                  {cameraAnalysis.tracking_percentage > 75 ? 'Heavy Surveillance Route' :
+                   cameraAnalysis.tracking_percentage > 50 ? 'Moderate Surveillance' :
+                   cameraAnalysis.tracking_percentage > 25 ? 'Light Surveillance' :
+                   'Low Surveillance Route'}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                   You will pass {cameraAnalysis.total_cameras} surveillance cameras over {cameraAnalysis.route_distance_miles} miles.
@@ -1019,7 +1020,7 @@ export default function TripDetail() {
           border: '1px solid rgba(239, 68, 68, 0.3)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '24px' }}>⚠️</span>
+            <Icon name="warn" size={24} />
             <div>
               <h3 style={{ margin: 0, color: '#EF4444' }}>Trip Needs More Stops</h3>
               <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -1056,7 +1057,7 @@ export default function TripDetail() {
                     Suggested Stop Area
                   </div>
                   <div style={{ color: 'var(--text-primary)' }}>
-                    📍 {gap.suggested_area}
+                    {gap.suggested_area}
                   </div>
                   <div style={{ marginTop: '6px', color: 'var(--text-muted)', fontSize: '11px' }}>
                     Search within {gap.search_radius_miles} miles for campgrounds, RV parks, or Harvest Hosts
@@ -1096,7 +1097,7 @@ export default function TripDetail() {
                 fontWeight: 600
               }}
             >
-              🌾 Import HH
+              Import HH
             </button>
             <button
               onClick={() => setShowAddStop(true)}
@@ -1118,7 +1119,7 @@ export default function TripDetail() {
             border: '2px solid #16a34a'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-              <h4 style={{ margin: 0, color: '#16a34a' }}>🌾 Import from Harvest Hosts</h4>
+              <h4 style={{ margin: 0, color: '#16a34a' }}>Import from Harvest Hosts</h4>
               <button onClick={() => { setShowHHImport(false); setHhParsedStop(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }}>×</button>
             </div>
 
@@ -1160,9 +1161,9 @@ export default function TripDetail() {
               <div>
                 <div style={{ background: 'var(--card-bg)', padding: '10px', borderRadius: '6px', marginBottom: '10px', fontSize: '12px' }}>
                   <strong>{hhParsedStop.name}</strong>
-                  {hhParsedStop.address && <div style={{ color: 'var(--text-muted)' }}>📍 {hhParsedStop.address}</div>}
-                  {hhParsedStop.max_rig_size && <div style={{ color: 'var(--text-muted)' }}>🚐 {hhParsedStop.max_rig_size}</div>}
-                  {hhParsedStop.check_in_time && <div style={{ color: 'var(--text-muted)' }}>🕐 {hhParsedStop.check_in_time}</div>}
+                  {hhParsedStop.address && <div style={{ color: 'var(--text-muted)' }}>{hhParsedStop.address}</div>}
+                  {hhParsedStop.max_rig_size && <div style={{ color: 'var(--text-muted)' }}>{hhParsedStop.max_rig_size}</div>}
+                  {hhParsedStop.check_in_time && <div style={{ color: 'var(--text-muted)' }}>{hhParsedStop.check_in_time}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setHhParsedStop(null)} style={{ flex: 1, padding: '8px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer' }}>Back</button>
@@ -1287,7 +1288,7 @@ export default function TripDetail() {
             {/* HH-specific fields if from Harvest Hosts */}
             {editingStop.source === 'harvest_hosts' && (
               <div style={{ background: 'rgba(22, 163, 74, 0.1)', padding: '10px', borderRadius: '6px', marginBottom: '10px', fontSize: '11px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '5px', color: '#16a34a' }}>🌾 Harvest Hosts Info</div>
+                <div style={{ fontWeight: 600, marginBottom: '5px', color: '#16a34a' }}>Harvest Hosts Info</div>
                 {editingStop.max_rig_size && <div>Max Rig: {editingStop.max_rig_size}</div>}
                 {editingStop.parking_surface && <div>Surface: {editingStop.parking_surface}</div>}
                 {editingStop.check_in_time && <div>Check-in: {editingStop.check_in_time}</div>}
@@ -1338,7 +1339,7 @@ export default function TripDetail() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '18px' }}>{getCategoryIcon(stop.category)}</span>
+                      <Icon name={getCategoryIcon(stop.category)} size={18} />
                       <h3 style={{ margin: 0, fontSize: '15px' }}>
                         {index + 1}. {stop.name}
                       </h3>
@@ -1365,13 +1366,13 @@ export default function TripDetail() {
                       <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '6px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {stop.arrival_time && (
                           <span>
-                            📅 Arrive: {new Date(stop.arrival_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            Arrive: {new Date(stop.arrival_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             {stop.arrival_tentative && <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}> (tentative)</span>}
                           </span>
                         )}
                         {stop.departure_time && (
                           <span>
-                            🚗 Depart: {new Date(stop.departure_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            Depart: {new Date(stop.departure_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                             {stop.departure_tentative && <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}> (tentative)</span>}
                           </span>
                         )}
@@ -1388,7 +1389,7 @@ export default function TripDetail() {
                         fontSize: '12px'
                       }}>
                         <div style={{ fontWeight: 600, color: 'var(--accent-warning)', marginBottom: '4px' }}>
-                          ⚠️ Suggested Stop Area - Action Needed
+                          Suggested Stop Area - Action Needed
                         </div>
                         <div style={{ color: 'var(--text-secondary)' }}>
                           Find a campground, RV park, or Harvest Host within {stop.search_radius_miles || 30} miles of this location.
@@ -1398,19 +1399,19 @@ export default function TripDetail() {
                     {/* Harvest Hosts / Source specific details */}
                     {(stop.max_rig_size || stop.check_in_time || stop.parking_spaces) && (
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        {stop.max_rig_size && <span>🚐 {stop.max_rig_size} </span>}
-                        {stop.parking_spaces && <span>🅿️ {stop.parking_spaces} spaces </span>}
-                        {stop.check_in_time && <span>🕐 {stop.check_in_time}</span>}
+                        {stop.max_rig_size && <span>{stop.max_rig_size} </span>}
+                        {stop.parking_spaces && <span>{stop.parking_spaces} spaces </span>}
+                        {stop.check_in_time && <span>{stop.check_in_time}</span>}
                       </div>
                     )}
                     {stop.parking_instructions && (
                       <p style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        📋 {stop.parking_instructions}
+                        {stop.parking_instructions}
                       </p>
                     )}
                     {stop.amenities && (
                       <p style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        ✨ {stop.amenities}
+                        {stop.amenities}
                       </p>
                     )}
                     {stop.source_url && (
@@ -1420,7 +1421,7 @@ export default function TripDetail() {
                         rel="noopener noreferrer"
                         style={{ fontSize: '11px', color: 'var(--accent-primary)', marginTop: '4px', display: 'inline-block' }}
                       >
-                        🔗 View on {stop.source || 'source'}
+                        View on {stop.source || 'source'}
                       </a>
                     )}
                     {stop.notes && (

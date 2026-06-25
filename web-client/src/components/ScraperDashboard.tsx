@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import Icon from './Icon'
 import { scraperDashboard, settings } from '../services/api'
 import './ScraperDashboard.css'
 
@@ -433,7 +434,7 @@ export default function ScraperDashboard() {
                     >
                       <span className="cat-icon">{cat.icon}</span>
                       <span className="cat-name">{cat.name}</span>
-                      {selectedCategories.has(cat.id) && <span className="check-mark">✓</span>}
+                      {selectedCategories.has(cat.id) && <span className="check-mark"><Icon name="check" size={14} /></span>}
                     </div>
                   ))}
                 </div>
@@ -459,7 +460,7 @@ export default function ScraperDashboard() {
                       onClick={() => toggleState(state.code)}
                     >
                       <span className="state-code">{state.code}</span>
-                      {selectedStates.has(state.code) && <span className="check-mark">✓</span>}
+                      {selectedStates.has(state.code) && <span className="check-mark"><Icon name="check" size={14} /></span>}
                     </div>
                   ))}
                 </div>
@@ -744,7 +745,7 @@ export default function ScraperDashboard() {
             {/* Error Display */}
             {scraper.last_error && scraper.status === 'failed' && (
               <div className="error-display">
-                <span className="error-icon">⚠️</span>
+                <span className="error-icon"><Icon name="warn" size={16} /></span>
                 <span className="error-message">{scraper.last_error}</span>
               </div>
             )}
@@ -802,7 +803,7 @@ export default function ScraperDashboard() {
         {scrapers.some(s => s.scraper_type.startsWith('hh_')) && (
           <div className="scraper-group harvest-hosts-group">
             <div className="group-header">
-              <span className="group-icon">🏡</span>
+              <span className="group-icon"><Icon name="home" size={18} /></span>
               <h3>Harvest Hosts</h3>
               <span className="group-badge">Membership Required</span>
             </div>
@@ -818,7 +819,7 @@ export default function ScraperDashboard() {
                       <div className="out-of-order-sticker">
                         <span className="sticker-tape top"></span>
                         <div className="sticker-content">
-                          <span className="sticker-icon">🔧</span>
+                          <span className="sticker-icon"><Icon name="tools" size={16} /></span>
                           <span className="sticker-text">OUT OF ORDER</span>
                           <span className="sticker-subtext">Gremlins in the code!</span>
                         </div>

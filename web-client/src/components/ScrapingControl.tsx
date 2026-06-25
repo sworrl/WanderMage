@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { scraping } from '../services/api'
+import Icon from './Icon'
 
 interface Category {
   id: string
@@ -40,16 +41,16 @@ interface ActiveCrawl {
 
 // Category icons
 const CATEGORY_ICONS: Record<string, string> = {
-  truck_stops: '🚛',
-  dump_stations: '🚰',
-  rest_areas: '🛣️',
-  campgrounds: '⛺',
-  national_parks: '🏞️',
-  state_parks: '🌲',
-  gas_stations: '⛽',
-  overpass_heights: '🚧',
-  railroad_crossings: '🚂',
-  height_restrictions: '📏'
+  truck_stops: 'truck',
+  dump_stations: 'droplet',
+  rest_areas: 'road',
+  campgrounds: 'tent',
+  national_parks: 'mountain',
+  state_parks: 'tree',
+  gas_stations: 'fuel',
+  overpass_heights: 'warn',
+  railroad_crossings: 'crossing',
+  height_restrictions: 'ruler'
 }
 
 export default function ScrapingControl() {
@@ -243,7 +244,7 @@ export default function ScrapingControl() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <h3 style={{ margin: 0, color: '#3b82f6' }}>
-              {activeCrawl.status === 'rate_limited' ? '⏸️ Rate Limited' : '🔄 Crawl In Progress'}
+              {activeCrawl.status === 'rate_limited' ? '⏸️ Rate Limited' : 'Crawl In Progress'}
             </h3>
             <button
               onClick={stopCrawl}
@@ -266,7 +267,7 @@ export default function ScrapingControl() {
             <div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Categories</div>
               <div style={{ fontWeight: 600 }}>
-                {activeCrawl.categories.map(c => CATEGORY_ICONS[c] || '📍').join(' ')}
+                {activeCrawl.categories.map(c => <Icon key={c} name={CATEGORY_ICONS[c] || 'pin'} size={14} />)}
               </div>
             </div>
             <div>
@@ -360,7 +361,7 @@ export default function ScrapingControl() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '20px' }}>{CATEGORY_ICONS[category.id] || '📍'}</span>
+                  <Icon name={CATEGORY_ICONS[category.id] || 'pin'} size={20} />
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{category.name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -368,7 +369,7 @@ export default function ScrapingControl() {
                     </div>
                   </div>
                   {isSelected && (
-                    <span style={{ marginLeft: 'auto', color: '#3b82f6', fontSize: '18px' }}>✓</span>
+                    <span style={{ marginLeft: 'auto', color: '#3b82f6' }}><Icon name="check" size={18} /></span>
                   )}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.3' }}>
@@ -478,7 +479,7 @@ export default function ScrapingControl() {
                         fontSize: '11px'
                       }}
                     >
-                      {CATEGORY_ICONS[cat] || '📍'} {cat.replace(/_/g, ' ')}
+                      <Icon name={CATEGORY_ICONS[cat] || 'pin'} size={14} /> {cat.replace(/_/g, ' ')}
                     </span>
                   ))}
                 </div>

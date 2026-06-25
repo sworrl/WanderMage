@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Icon from '../components/Icon'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
@@ -266,7 +267,7 @@ export default function TripForm() {
         console.error('Reverse geocoding failed:', error)
         // Still create a result with just the coordinates
         const result: SearchResult = {
-          display_name: `📍 ${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}`,
+          display_name: `${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}`,
           lat: coords.lat.toString(),
           lon: coords.lon.toString(),
           address: {}
@@ -426,7 +427,7 @@ export default function TripForm() {
       // If no results found, add a helper message
       if (allResults.length === 0) {
         allResults.push({
-          display_name: `⚠️ No results found for "${query}". Try using the "🗺️ Select on Map" button instead.`,
+          display_name: `No results found for "${query}". Try using the "Select on Map" button instead.`,
           lat: '',
           lon: '',
           address: {}
@@ -538,7 +539,7 @@ export default function TripForm() {
           if (city) displayParts.push(city)
           if (stateAbbrev) displayParts.push(stateAbbrev)
           if (zipCode) displayParts.push(zipCode)
-          const displayAddress = isHereNow ? `📍 Here Now - ${displayParts.join(', ')}` : displayParts.join(', ')
+          const displayAddress = isHereNow ? `Here Now - ${displayParts.join(', ')}` : displayParts.join(', ')
 
           const newStops = stops.map(s => s.id === stopId ? {
             ...s,
@@ -556,7 +557,7 @@ export default function TripForm() {
           setSearchQuery(prev => ({ ...prev, [stopId]: displayAddress }))
         } catch (error) {
           console.error('Reverse geocoding failed:', error)
-          const displayAddress = isHereNow ? '📍 Here Now (Location detected)' : 'Location detected'
+          const displayAddress = isHereNow ? 'Here Now (Location detected)' : 'Location detected'
           const newStops = stops.map(s => s.id === stopId ? {
             ...s,
             latitude: lat.toString(),
@@ -1004,7 +1005,7 @@ export default function TripForm() {
 
       <div className="card mb-4" style={{ background: 'var(--card-bg)', borderLeft: '4px solid var(--accent-primary)' }}>
         <div style={{ color: 'var(--text-secondary)', marginBottom: '15px', fontSize: '14px' }}>
-          <strong>💡 Flexible Planning:</strong> Add stops in any order! You can:
+          <strong>Flexible Planning:</strong> Add stops in any order! You can:
           <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
             <li>Start with just a departure date (mark it tentative if unsure)</li>
             <li>Add stops you've already booked with specific dates</li>
@@ -1102,7 +1103,7 @@ export default function TripForm() {
                   onChange={handleChange}
                   style={{ marginRight: '8px' }}
                 />
-                <span style={{ color: 'var(--text-secondary)' }}>📅 Tentative (not confirmed yet)</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Tentative (not confirmed yet)</span>
               </label>
             </div>
 
@@ -1123,7 +1124,7 @@ export default function TripForm() {
                   onChange={handleChange}
                   style={{ marginRight: '8px' }}
                 />
-                <span style={{ color: 'var(--text-secondary)' }}>📅 Tentative</span>
+                <span style={{ color: 'var(--text-secondary)' }}>Tentative</span>
               </label>
             </div>
           </div>
@@ -1145,7 +1146,7 @@ export default function TripForm() {
           <div className="flex justify-between items-center mb-3">
             <h2>Trip Stops ({stops.length})</h2>
             <button type="button" onClick={addStop} className="btn btn-primary">
-              ➕ Add Stop
+              Add Stop
             </button>
           </div>
 
@@ -1182,8 +1183,8 @@ export default function TripForm() {
             >
               <div className="flex justify-between items-center mb-3">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '20px', cursor: 'move' }}>☰</span>
-                  <h3>{index === 0 ? '🚀 Starting Location' : `📍 Stop ${index + 1}`}</h3>
+                  <span style={{ cursor: 'move' }}><Icon name="menu" size={20} /></span>
+                  <h3>{index === 0 ? 'Starting Location' : `Stop ${index + 1}`}</h3>
                 </div>
                 <button
                   type="button"
@@ -1191,7 +1192,7 @@ export default function TripForm() {
                   className="btn btn-danger"
                   style={{ padding: '5px 10px', fontSize: '12px' }}
                 >
-                  ✕ Remove
+                  Remove
                 </button>
               </div>
 
@@ -1207,7 +1208,7 @@ export default function TripForm() {
                         disabled={geolocating[stop.id!]}
                         style={{ padding: '4px 8px', fontSize: '12px' }}
                       >
-                        {geolocating[stop.id!] ? 'Detecting...' : '📍 Here Now'}
+                        {geolocating[stop.id!] ? 'Detecting...' : 'Here Now'}
                       </button>
                     )}
                     <button
@@ -1217,7 +1218,7 @@ export default function TripForm() {
                       disabled={geolocating[stop.id!]}
                       style={{ padding: '4px 8px', fontSize: '12px' }}
                     >
-                      {geolocating[stop.id!] ? 'Detecting...' : '📍 Use Location'}
+                      {geolocating[stop.id!] ? 'Detecting...' : 'Use Location'}
                     </button>
                     <button
                       type="button"
@@ -1225,7 +1226,7 @@ export default function TripForm() {
                       className="btn btn-secondary"
                       style={{ padding: '4px 8px', fontSize: '12px' }}
                     >
-                      🗺️ Select on Map
+                      Select on Map
                     </button>
                   </div>
                 </div>
@@ -1339,7 +1340,7 @@ export default function TripForm() {
                     onChange={(e) => handleStopChange(stop.id!, 'is_overnight', e.target.checked)}
                     style={{ marginRight: '8px' }}
                   />
-                  🌙 Overnight Stop
+                  Overnight Stop
                 </label>
               </div>
 
@@ -1353,7 +1354,7 @@ export default function TripForm() {
                   marginTop: '10px',
                   color: 'var(--text-primary)'
                 }}>
-                  <strong>📍 Coordinates:</strong> {parseFloat(stop.latitude).toFixed(6)}, {parseFloat(stop.longitude).toFixed(6)}
+                  <strong>Coordinates:</strong> {parseFloat(stop.latitude).toFixed(6)}, {parseFloat(stop.longitude).toFixed(6)}
                 </div>
               )}
 
@@ -1387,7 +1388,7 @@ export default function TripForm() {
 
         <div className="flex gap-2">
           <button type="submit" className="btn btn-primary">
-            {isEditing ? '💾 Save Changes' : '🚀 Create Trip'}
+            {isEditing ? 'Save Changes' : 'Create Trip'}
           </button>
           <button type="button" onClick={() => navigate('/trips')} className="btn btn-secondary">
             Cancel

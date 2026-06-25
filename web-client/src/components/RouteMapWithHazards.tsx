@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import Icon, { iconSvg } from './Icon'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import { trips as tripsApi } from '../services/api'
@@ -251,7 +252,7 @@ const createRRIcon = (safetyLevel: string) => {
       border: 2px solid white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
       font-size: 14px;
-    ">🚂</div>`,
+    ">${iconSvg('crossing', { size: 14, color: 'white' })}</div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   })
@@ -568,7 +569,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
             checked={showRailroad}
             onChange={(e) => setShowRailroad(e.target.checked)}
           />
-          <span>🚂 Railroad Crossings ({railroadCrossings.length})</span>
+          <span>Railroad Crossings ({railroadCrossings.length})</span>
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px' }}>
           <input
@@ -577,7 +578,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
             onChange={(e) => setShowHeights(e.target.checked)}
           />
           <span>
-            ⚠️ Low Clearances ({heightRestrictions.length})
+            Low Clearances ({heightRestrictions.length})
             {criticalHeights.length > 0 && (
               <span style={{ color: '#ef4444', fontWeight: 600 }}> ({criticalHeights.length} critical)</span>
             )}
@@ -590,7 +591,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
             onChange={(e) => setShowWeights(e.target.checked)}
           />
           <span>
-            ⚖️ Weight Limits ({weightRestrictions.length})
+            Weight Limits ({weightRestrictions.length})
             {criticalWeights.length > 0 && (
               <span style={{ color: '#ef4444', fontWeight: 600 }}> ({criticalWeights.length} critical)</span>
             )}
@@ -700,7 +701,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                         font-size: 12px;
                         border: 2px solid white;
                         box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-                      ">🔍</div>`,
+                      ">${iconSvg('search', { size: 14, color: 'white' })}</div>`,
                       iconSize: [32, 32],
                       iconAnchor: [16, 16],
                     })}
@@ -708,7 +709,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                     <Popup>
                       <div style={{ minWidth: '200px' }}>
                         <strong style={{ color: '#F59E0B', fontSize: '14px' }}>
-                          🔍 {stop.name}
+                          {stop.name}
                         </strong>
                         <div style={{
                           margin: '10px 0',
@@ -751,14 +752,14 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                       font-size: 12px;
                       border: 2px solid white;
                       box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-                    ">🔍</div>`,
+                    ">${iconSvg('search', { size: 14, color: 'white' })}</div>`,
                     iconSize: [32, 32],
                     iconAnchor: [16, 16],
                   })}
                 >
                   <Popup>
                     <div>
-                      <strong style={{ color: '#F59E0B' }}>🔍 {stop.name}</strong>
+                      <strong style={{ color: '#F59E0B' }}>{stop.name}</strong>
                       <div style={{ fontSize: '12px', marginTop: '4px' }}>
                         Loading route...
                       </div>
@@ -805,7 +806,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                 >
                   <Popup>
                     <div style={{ minWidth: '180px' }}>
-                      <strong>🚂 {crossing.name}</strong>
+                      <strong>{crossing.name}</strong>
                       {crossing.road_name && (
                         <div style={{ fontSize: '12px', color: '#666' }}>
                           {crossing.road_name}
@@ -821,9 +822,9 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                         color: crossing.safety_level === 'protected' ? '#166534' :
                                crossing.safety_level === 'warning' ? '#92400e' : '#991b1b'
                       }}>
-                        {crossing.safety_level === 'protected' && '✓ Protected (Gates)'}
-                        {crossing.safety_level === 'warning' && '⚠ Warning (Lights/Bell)'}
-                        {crossing.safety_level === 'unprotected' && '⚠ Unprotected'}
+                        {crossing.safety_level === 'protected' && 'Protected (Gates)'}
+                        {crossing.safety_level === 'warning' && 'Warning (Lights/Bell)'}
+                        {crossing.safety_level === 'unprotected' && 'Unprotected'}
                       </div>
                     </div>
                   </Popup>
@@ -840,7 +841,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                 const isSafe = height.height_feet > rvHeight
                 const isDangerous = height.height_feet - rvHeight <= 5/12
                 const typeLabel = restrictionType === 'parking' ? 'Parking Garage' : restrictionType === 'tunnel' ? 'Tunnel' : 'Bridge/Overpass'
-                const typeEmoji = restrictionType === 'parking' ? '🅿️' : restrictionType === 'tunnel' ? '🚇' : '🌉'
+                const typeIcon = restrictionType === 'parking' ? 'building' : restrictionType === 'tunnel' ? 'clearance' : 'clearance'
                 const statusColor = !isSafe ? '#ef4444' : isDangerous ? '#f59e0b' : '#10B981'
                 return (
                   <Marker
@@ -851,7 +852,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                     <Popup>
                       <div style={{ minWidth: '180px' }}>
                         <strong style={{ color: statusColor }}>
-                          {typeEmoji} {height.name || typeLabel}
+                          <Icon name={typeIcon} size={16} /> {height.name || typeLabel}
                         </strong>
                         {height.road_name && (
                           <div style={{ fontSize: '12px', color: '#666' }}>
@@ -875,7 +876,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                             background: '#fee2e2',
                             color: '#991b1b'
                           }}>
-                            ⚠ Below your RV height ({rvHeight} ft)
+                            Below your RV height ({rvHeight} ft)
                           </div>
                         )}
                       </div>
@@ -903,7 +904,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                     <Popup>
                       <div style={{ minWidth: '180px' }}>
                         <strong style={{ color: statusColor }}>
-                          ⚖️ {weight.name || 'Weight Limit'}
+                          {weight.name || 'Weight Limit'}
                         </strong>
                         {weight.road_name && (
                           <div style={{ fontSize: '12px', color: '#666' }}>
@@ -932,7 +933,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
                             background: '#fee2e2',
                             color: '#991b1b'
                           }}>
-                            ⚠ Your RV ({(rvWeight / 2000).toFixed(1)} tons) exceeds this limit
+                            Your RV ({(rvWeight / 2000).toFixed(1)} tons) exceeds this limit
                           </div>
                         )}
                       </div>
@@ -986,7 +987,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
           border: '1px solid #fca5a5'
         }}>
           <div style={{ fontWeight: 600, color: '#991b1b', marginBottom: '6px' }}>
-            🚫 {criticalHeights.length} Critical Low Clearance{criticalHeights.length > 1 ? 's' : ''} on Route
+            {criticalHeights.length} Critical Low Clearance{criticalHeights.length > 1 ? 's' : ''} on Route
           </div>
           <div style={{ fontSize: '12px', color: '#7f1d1d' }}>
             These clearances may be too low for your RV ({rvHeight} ft). Consider alternate routes.
@@ -1003,7 +1004,7 @@ export default function RouteMapWithHazards({ tripId, stops, rvHeight = 13.5, rv
           border: '1px solid #fcd34d'
         }}>
           <div style={{ fontWeight: 600, color: '#92400e', marginBottom: '6px' }}>
-            ⚖️ {criticalWeights.length} Weight Restriction{criticalWeights.length > 1 ? 's' : ''} on Route
+            {criticalWeights.length} Weight Restriction{criticalWeights.length > 1 ? 's' : ''} on Route
           </div>
           <div style={{ fontSize: '12px', color: '#78350f' }}>
             Your RV ({(rvWeight / 2000).toFixed(1)} tons) may exceed these weight limits. Check bridge restrictions.

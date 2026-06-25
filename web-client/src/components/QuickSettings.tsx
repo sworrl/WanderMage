@@ -1,25 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useTheme, themes, ThemeName } from '../contexts/ThemeContext'
 import { getCurrentHoliday } from './HolidayEffects'
+import Icon from './Icon'
 import { safeStorage } from '../utils/storage'
 import './QuickSettings.css'
 
 // Holiday-specific icons - match the emojis from HolidayEffects.tsx
 const holidayIcons: Record<string, string> = {
-  'New Year': '🎆',
-  "New Year's Eve": '🎇',
-  'MLK Day': '🇺🇸',
-  "Valentine's Day": '❤️',
-  "Presidents' Day": '🇺🇸',
-  "St. Patrick's Day": '☘️',
-  'Easter': '🐰',
-  'Memorial Day': '🇺🇸',
-  'Independence Day': '🎇',
-  'Labor Day': '🇺🇸',
-  'Halloween': '🎃',
-  'Veterans Day': '🇺🇸',
-  'Thanksgiving': '🦃',
-  'Christmas': '🎄',
+  'New Year': '',
+  "New Year's Eve": '',
+  'MLK Day': '',
+  "Valentine's Day": '',
+  "Presidents' Day": '',
+  "St. Patrick's Day": '',
+  'Easter': '',
+  'Memorial Day': '',
+  'Independence Day': '',
+  'Labor Day': '',
+  'Halloween': '',
+  'Veterans Day': '',
+  'Thanksgiving': '',
+  'Christmas': '',
 }
 
 export default function QuickSettings() {
@@ -39,22 +40,22 @@ export default function QuickSettings() {
   }, [holidayEnabled])
 
   const themeIcons: Record<ThemeName, string> = {
-    midnight: '🌙',
-    ocean: '🌊',
-    forest: '🌲',
-    sunset: '🌅',
-    desert: '🏜️',
-    light: '☀️',
-    crimson: '🔴',
-    nord: '❄️',
-    vampire: '🧛',
-    synthwave: '🌃',
-    matrix: '💚',
-    dracula: '🦇',
-    monokai: '🟡',
-    cobalt: '💙',
-    gruvbox: '🟤',
-    solarized: '🌞'
+    midnight: '',
+    ocean: '',
+    forest: '',
+    sunset: '',
+    desert: '',
+    light: '',
+    crimson: '',
+    nord: '',
+    vampire: '',
+    synthwave: '',
+    matrix: '',
+    dracula: '',
+    monokai: '',
+    cobalt: '',
+    gruvbox: '',
+    solarized: ''
   }
 
   return (
@@ -68,7 +69,7 @@ export default function QuickSettings() {
             title={`${holidayEnabled ? 'Disable' : 'Enable'} ${currentHoliday.name} effects`}
           >
             <span className="setting-icon">
-              {holidayIcons[currentHoliday.name] || currentHoliday.emoji || '🎉'}
+              <Icon name="star" size={18} />
             </span>
           </button>
         </div>
@@ -81,7 +82,7 @@ export default function QuickSettings() {
           onClick={() => setShowThemeMenu(!showThemeMenu)}
           title="Change Theme"
         >
-          <span className="setting-icon">{themeIcons[themeName]}</span>
+          <span className="setting-icon" style={{ display: 'inline-block', width: 16, height: 16, borderRadius: '50%', background: themes[themeName].colors.accentPrimary }} />
         </button>
 
         {showThemeMenu && (
@@ -97,9 +98,9 @@ export default function QuickSettings() {
                     setShowThemeMenu(false)
                   }}
                 >
-                  <span className="theme-icon">{themeIcons[name]}</span>
+                  <span className="theme-icon" style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', background: themes[name].colors.accentPrimary }} />
                   <span className="theme-label">{themes[name].displayName}</span>
-                  {themeName === name && <span className="check-mark">✓</span>}
+                  {themeName === name && <span className="check-mark"><Icon name="check" size={14} /></span>}
                 </button>
               ))}
             </div>

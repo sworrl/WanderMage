@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import Icon from './Icon'
 import './TripCalendar.css';
 
 interface Stop {
@@ -175,9 +176,9 @@ export default function TripCalendar({
                             className={`stop-marker ${stop.arrival_tentative || stop.departure_tentative ? 'tentative-stop' : ''}`}
                             title={`${stop.city}, ${stop.state}${stop.arrival_tentative || stop.departure_tentative ? ' (tentative)' : ''}`}
                           >
-                            <span className="stop-icon">📍</span>
+                            <span className="stop-icon"><Icon name="pin" size={16} /></span>
                             <span className="stop-name">{stop.city}</span>
-                            {stop.is_overnight && <span className="overnight-icon">🌙</span>}
+                            {stop.is_overnight && <span className="overnight-icon"><Icon name="moon" size={16} /></span>}
                           </div>
                         ))}
                       </div>

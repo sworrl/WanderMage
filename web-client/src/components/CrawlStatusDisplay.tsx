@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Icon from './Icon'
 import axios from 'axios';
 import { safeStorage } from '../utils/storage';
 import './CrawlStatusDisplay.css';
@@ -131,15 +132,15 @@ export default function CrawlStatusDisplay() {
   const getStatusIcon = (status: string): string => {
     switch (status) {
       case 'running':
-        return '⚡';
+        return 'refresh';
       case 'completed':
-        return '✓';
+        return 'check';
       case 'failed':
-        return '✗';
+        return 'cross';
       case 'paused':
-        return '⏸';
+        return 'pause';
       default:
-        return '○';
+        return 'dot';
     }
   };
 
@@ -216,7 +217,7 @@ export default function CrawlStatusDisplay() {
         <div className="status-header">
           <h2>
             <span className="status-icon" style={{ color: getStatusColor(crawlStatus.status) }}>
-              {getStatusIcon(crawlStatus.status)}
+              <Icon name={getStatusIcon(crawlStatus.status)} size={16} />
             </span>
             POI Crawl Status
           </h2>

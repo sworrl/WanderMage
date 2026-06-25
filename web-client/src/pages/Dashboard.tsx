@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { metrics, pois, weather } from '../services/api'
 import StatesVisitedMap from '../components/StatesVisitedMap'
+import Icon from '../components/Icon'
 import MultiCrawlStatusDisplay from '../components/MultiCrawlStatusDisplay'
 import POIDataMap from '../components/POIDataMap'
 import { US_STATE_PATHS } from '../data/usStatePaths'
@@ -95,75 +96,75 @@ const generatePOISpeckles = (stateCode: string, count: number): JSX.Element[] =>
 // Category icons mapping - comprehensive list matching database categories
 const CATEGORY_ICONS: Record<string, string> = {
   // Core RV/Camping
-  'rest_areas': '🛣️',
-  'rest_area': '🛣️',
-  'parking_lots': '🅿️',
-  'parking_lot': '🅿️',
-  'rv_parks': '🚐',
-  'rv_park': '🚐',
-  'campgrounds': '⛺',
-  'campground': '⛺',
-  'tent_camping': '🏕️',
-  'dump_stations': '🚰',
-  'dump_station': '🚰',
+  'rest_areas': 'road',
+  'rest_area': 'road',
+  'parking_lots': 'shelter',
+  'parking_lot': 'shelter',
+  'rv_parks': 'rv',
+  'rv_park': 'rv',
+  'campgrounds': 'tent',
+  'campground': 'tent',
+  'tent_camping': 'tent',
+  'dump_stations': 'droplet',
+  'dump_station': 'droplet',
 
   // Fuel & Travel
-  'fuel_stations': '⛽',
-  'fuel_station': '⛽',
-  'gas_stations': '⛽',
-  'gas_station': '⛽',
-  'truck_stops': '🚛',
-  'truck_stop': '🚛',
-  'ev_charging': '🔌',
+  'fuel_stations': 'fuel',
+  'fuel_station': 'fuel',
+  'gas_stations': 'fuel',
+  'gas_station': 'fuel',
+  'truck_stops': 'truck',
+  'truck_stop': 'truck',
+  'ev_charging': 'ev',
 
   // Recreation
-  'parks': '🌲',
-  'park': '🌲',
-  'state_parks': '🏞️',
-  'state_park': '🏞️',
-  'scenic_viewpoint': '🏔️',
+  'parks': 'tree',
+  'park': 'tree',
+  'state_parks': 'mountain',
+  'state_park': 'mountain',
+  'scenic_viewpoint': 'mountain',
 
   // Food & Shopping
-  'dining': '🍽️',
-  'restaurant': '🍽️',
-  'shopping': '🛍️',
-  'grocery': '🛒',
-  'convenience_stores': '🏪',
-  'convenience_store': '🏪',
+  'dining': 'food',
+  'restaurant': 'food',
+  'shopping': 'cart',
+  'grocery': 'cart',
+  'convenience_stores': 'store',
+  'convenience_store': 'store',
 
   // Lodging
-  'lodging': '🏨',
-  'hotel': '🏨',
+  'lodging': 'bed',
+  'hotel': 'bed',
 
   // Services
-  'visitor_centers': '🏛️',
-  'visitor_center': '🏛️',
-  'welcome_center': '🏛️',
-  'restrooms': '🚻',
-  'restroom': '🚻',
+  'visitor_centers': 'building',
+  'visitor_center': 'building',
+  'welcome_center': 'building',
+  'restrooms': 'restroom',
+  'restroom': 'restroom',
 
   // Government & Public
-  'government': '🏢',
-  'post_offices': '📮',
-  'post_office': '📮',
+  'government': 'building',
+  'post_offices': 'mail',
+  'post_office': 'mail',
 
   // Medical
-  'hospitals': '🏥',
-  'hospital': '🏥',
-  'pharmacy': '💊',
-  'vet': '🐾',
+  'hospitals': 'medical',
+  'hospital': 'medical',
+  'pharmacy': 'pill',
+  'vet': 'paw',
 
   // Utilities
-  'water': '💧',
-  'propane': '🔥',
-  'repair': '🔧',
-  'laundry': '🧺',
-  'wifi': '📶',
-  'electric': '⚡',
+  'water': 'droplet',
+  'propane': 'flame',
+  'repair': 'tools',
+  'laundry': 'laundry',
+  'wifi': 'info',
+  'electric': 'ev',
 
   // Infrastructure
-  'overpass_heights': '🚧',
-  'parking': '🅿️'
+  'overpass_heights': 'warn',
+  'parking': 'shelter'
 }
 
 // Mini state SVG component
@@ -448,7 +449,7 @@ export default function Dashboard() {
       {/* Harvest Hosts Upcoming Stays */}
       {hhStays && hhStays.stays && hhStays.stays.length > 0 && (
         <div className="card mb-4">
-          <h2>🌾 Upcoming Harvest Hosts Stays ({hhStays.stays.length})</h2>
+          <h2>Upcoming Harvest Hosts Stays ({hhStays.stays.length})</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '15px' }}>
             {hhStays.stays.map((stay: any) => (
               <div
@@ -477,7 +478,7 @@ export default function Dashboard() {
                       {stay.host_name}
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-                      📅 {stay.check_in_date ? new Date(stay.check_in_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}
+                      {stay.check_in_date ? new Date(stay.check_in_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'}
                       {stay.nights && ` • ${stay.nights} night${stay.nights > 1 ? 's' : ''}`}
                     </div>
                     {stay.status && (
@@ -498,7 +499,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                     {stay.trip_id ? (
                       <div style={{ fontSize: '11px', color: '#10b981', fontStyle: 'italic' }}>
-                        ✓ Added to trip
+                        Added to trip
                       </div>
                     ) : (
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
@@ -630,7 +631,7 @@ export default function Dashboard() {
             {/* Location */}
             {(selectedHHStay.address || selectedHHStay.city || selectedHHStay.latitude) && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>📍 Location</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Location</h3>
                 {selectedHHStay.address && (
                   <div style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '4px' }}>
                     {selectedHHStay.address}
@@ -665,7 +666,7 @@ export default function Dashboard() {
             {/* Parking Info */}
             {(selectedHHStay.max_rig_size || selectedHHStay.parking_spaces || selectedHHStay.parking_surface || selectedHHStay.check_in_method) && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>🚐 Parking Details</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Parking Details</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                   {selectedHHStay.max_rig_size && (
                     <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '6px' }}>
@@ -709,7 +710,7 @@ export default function Dashboard() {
 
             {/* Host Rules - Always show this section */}
             <div style={{ marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>📋 House Rules</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>House Rules</h3>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                 {/* Pets - explicit true/false from page, no mention = not allowed */}
                 <div style={{
@@ -719,7 +720,7 @@ export default function Dashboard() {
                   background: selectedHHStay.pets_allowed === true ? 'rgba(22, 163, 74, 0.15)' : 'rgba(239, 68, 68, 0.15)',
                   color: selectedHHStay.pets_allowed === true ? '#16a34a' : '#ef4444'
                 }}>
-                  {selectedHHStay.pets_allowed === true ? '✓ Pets Allowed' : '✗ No Pets'}
+                  {selectedHHStay.pets_allowed === true ? 'Pets Allowed' : 'No Pets'}
                 </div>
                 {/* Generators - true/false if mentioned, null = not listed (presumed OK) */}
                 <div style={{
@@ -738,9 +739,9 @@ export default function Dashboard() {
                       : '#b8860b'
                 }}>
                   {selectedHHStay.generators_allowed === true
-                    ? '✓ Generators OK'
+                    ? 'Generators OK'
                     : selectedHHStay.generators_allowed === false
-                      ? '✗ No Generators'
+                      ? 'No Generators'
                       : '~ Generators Not Listed'}
                 </div>
                 {/* Slideouts - true/false if mentioned, null = not listed (presumed OK) */}
@@ -760,9 +761,9 @@ export default function Dashboard() {
                       : '#b8860b'
                 }}>
                   {selectedHHStay.slideouts_allowed === true
-                    ? '✓ Slideouts OK'
+                    ? 'Slideouts OK'
                     : selectedHHStay.slideouts_allowed === false
-                      ? '✗ No Slideouts'
+                      ? 'No Slideouts'
                       : '~ Slideouts Not Listed'}
                 </div>
               </div>
@@ -771,7 +772,7 @@ export default function Dashboard() {
             {/* Contact & Links */}
             {(selectedHHStay.phone || selectedHHStay.website) && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>📞 Contact</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Contact</h3>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   {selectedHHStay.phone && (
                     <a
@@ -785,7 +786,7 @@ export default function Dashboard() {
                         fontSize: '14px'
                       }}
                     >
-                      📞 {selectedHHStay.phone}
+                      {selectedHHStay.phone}
                     </a>
                   )}
                   {selectedHHStay.website && (
@@ -803,7 +804,7 @@ export default function Dashboard() {
                         border: '1px solid var(--border-color)'
                       }}
                     >
-                      🌐 Website
+                      Website
                     </a>
                   )}
                 </div>
@@ -813,7 +814,7 @@ export default function Dashboard() {
             {/* Amenities */}
             {selectedHHStay.amenities && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>✨ Amenities</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Amenities</h3>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   {selectedHHStay.amenities}
                 </div>
@@ -823,7 +824,7 @@ export default function Dashboard() {
             {/* How to Support */}
             {selectedHHStay.how_to_support && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>💝 How to Support the Host</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>How to Support the Host</h3>
                 <div style={{
                   fontSize: '13px',
                   color: 'var(--text-secondary)',
@@ -839,7 +840,7 @@ export default function Dashboard() {
             {/* Special Instructions / Host Message */}
             {(selectedHHStay.special_instructions || selectedHHStay.host_message) && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>💬 Host Message</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Host Message</h3>
                 <div style={{
                   fontSize: '13px',
                   color: 'var(--text-secondary)',
@@ -855,7 +856,7 @@ export default function Dashboard() {
             {/* Business Hours */}
             {selectedHHStay.business_hours && (
               <div style={{ marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>🕐 Business Hours</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px' }}>Business Hours</h3>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                   {selectedHHStay.business_hours}
                 </div>
@@ -887,7 +888,7 @@ export default function Dashboard() {
                     fontWeight: 600
                   }}
                 >
-                  📍 Show on Map
+                  Show on Map
                 </button>
               )}
               {selectedHHStay.latitude && selectedHHStay.longitude && (
@@ -910,7 +911,7 @@ export default function Dashboard() {
                     fontWeight: 600
                   }}
                 >
-                  🗺️ Google Maps
+                  Google Maps
                 </button>
               )}
             </div>
@@ -934,7 +935,7 @@ export default function Dashboard() {
             background: 'var(--bg-secondary)',
             borderRadius: '8px'
           }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>🌤️</div>
+            <div style={{ marginBottom: '12px' }}><Icon name="sun" size={32} /></div>
             <div style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
               {weatherError}
             </div>
@@ -993,7 +994,7 @@ export default function Dashboard() {
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                               <span style={{ fontSize: '16px' }}>
-                                {alert.severity === 'Extreme' ? '🚨' : alert.severity === 'Severe' ? '⚠️' : alert.severity === 'Moderate' ? '⚡' : 'ℹ️'}
+                                {alert.severity === 'Extreme' ? <Icon name="warn" size={18} /> : alert.severity === 'Severe' ? <Icon name="warn" size={18} /> : alert.severity === 'Moderate' ? <Icon name="ev" size={18} /> : <Icon name="info" size={18} />}
                               </span>
                               <span style={{ fontWeight: 700, fontSize: '14px', color: colors.text }}>
                                 {alert.event}
@@ -1171,7 +1172,7 @@ export default function Dashboard() {
                             marginTop: '4px',
                             fontWeight: 600
                           }}>
-                            💧 {period.probabilityOfPrecipitation.value}%
+                            {period.probabilityOfPrecipitation.value}%
                           </div>
                         )}
                       </div>
@@ -1235,9 +1236,9 @@ export default function Dashboard() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                     <span style={{ fontSize: '24px' }}>
-                      {selectedWeatherAlert.severity === 'Extreme' ? '🚨' :
-                       selectedWeatherAlert.severity === 'Severe' ? '⚠️' :
-                       selectedWeatherAlert.severity === 'Moderate' ? '⚡' : 'ℹ️'}
+                      {selectedWeatherAlert.severity === 'Extreme' ? <Icon name="warn" size={18} /> :
+                       selectedWeatherAlert.severity === 'Severe' ? <Icon name="warn" size={18} /> :
+                       selectedWeatherAlert.severity === 'Moderate' ? <Icon name="ev" size={18} /> : <Icon name="info" size={18} />}
                     </span>
                     <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)' }}>
                       {selectedWeatherAlert.event}
@@ -1504,7 +1505,7 @@ export default function Dashboard() {
                       }}
                     >
                       <span style={{ fontSize: '24px', marginBottom: '6px' }}>
-                        {CATEGORY_ICONS[cat.category] || '📍'}
+                        <Icon name={CATEGORY_ICONS[cat.category] || 'pin'} size={24} />
                       </span>
                       <div style={{
                         fontSize: '11px',
@@ -1543,7 +1544,7 @@ export default function Dashboard() {
                       }}
                     >
                       <span style={{ fontSize: '24px', marginBottom: '6px' }}>
-                        {CATEGORY_ICONS[cat.category] || '📍'}
+                        <Icon name={CATEGORY_ICONS[cat.category] || 'pin'} size={24} />
                       </span>
                       <div style={{
                         fontSize: '11px',

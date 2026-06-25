@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Icon from '../components/Icon'
 import { useNavigate } from 'react-router-dom'
 import { trips as tripsApi, rvProfiles as rvApi } from '../services/api'
 import { searchAddress as nominatimSearch, reverseGeocode } from '../utils/nominatim'
@@ -895,7 +896,7 @@ export default function TripPlanWizard() {
             fontSize: '14px'
           }}
         >
-          {s < step ? '✓' : s}
+          {s < step ? <Icon name="check" size={14} /> : s}
         </div>
       ))}
     </div>
@@ -1269,7 +1270,7 @@ export default function TripPlanWizard() {
                   />
                   <div>
                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ color: '#16a34a' }}>🌾</span>
+                      <span style={{ color: '#16a34a' }}><Icon name="tree" size={16} /></span>
                       Include Harvest Hosts suggestions
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -1301,7 +1302,7 @@ export default function TripPlanWizard() {
                       gap: '6px'
                     }}
                   >
-                    <span style={{ fontSize: '16px' }}>🌾</span>
+                    <span style={{ fontSize: '16px' }}><Icon name="tree" size={16} /></span>
                     Import from Harvest Hosts
                   </button>
                 </div>
@@ -1317,7 +1318,7 @@ export default function TripPlanWizard() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       <h4 style={{ margin: 0, color: '#16a34a' }}>
-                        🌾 Import from Harvest Hosts
+                        Import from Harvest Hosts
                       </h4>
                       <button
                         onClick={() => {
@@ -1403,7 +1404,7 @@ export default function TripPlanWizard() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       <h4 style={{ margin: 0, color: '#16a34a' }}>
-                        🌾 Select Stays to Import
+                        Select Stays to Import
                       </h4>
                       <button
                         onClick={() => {
@@ -1454,7 +1455,7 @@ export default function TripPlanWizard() {
                                 {stay.host_name}
                               </div>
                               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                📅 Check-in: {stay.check_in_date ? new Date(stay.check_in_date).toLocaleDateString() : 'TBD'}
+                                Check-in: {stay.check_in_date ? new Date(stay.check_in_date).toLocaleDateString() : 'TBD'}
                                 {stay.nights && ` • ${stay.nights} night${stay.nights > 1 ? 's' : ''}`}
                               </div>
                               {stay.status && (
@@ -1533,7 +1534,7 @@ export default function TripPlanWizard() {
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       <h4 style={{ margin: 0, color: '#16a34a' }}>
-                        🌾 Import Harvest Hosts Stop
+                        Import Harvest Hosts Stop
                       </h4>
                       <button
                         onClick={() => {
@@ -1635,17 +1636,17 @@ export default function TripPlanWizard() {
                           </div>
                           {hhParsedStop.address && (
                             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                              📍 {hhParsedStop.address}
+                              {hhParsedStop.address}
                             </div>
                           )}
                           {hhParsedStop.max_rig_size && (
                             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                              🚐 Max Rig: {hhParsedStop.max_rig_size}
+                              Max Rig: {hhParsedStop.max_rig_size}
                             </div>
                           )}
                           {hhParsedStop.parking_spaces && (
                             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                              🅿️ Spaces: {hhParsedStop.parking_spaces}
+                              Spaces: {hhParsedStop.parking_spaces}
                             </div>
                           )}
                           {hhParsedStop.parking_surface && (
@@ -1655,7 +1656,7 @@ export default function TripPlanWizard() {
                           )}
                           {hhParsedStop.check_in_time && (
                             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                              🕐 Check-in: {hhParsedStop.check_in_time}
+                              Check-in: {hhParsedStop.check_in_time}
                             </div>
                           )}
                           {hhParsedStop.parking_instructions && (
@@ -1666,7 +1667,7 @@ export default function TripPlanWizard() {
                           )}
                           {(!hhParsedStop.latitude || !hhParsedStop.longitude) && (
                             <div style={{ fontSize: '12px', color: '#f59e0b', marginTop: '8px' }}>
-                              ⚠️ Could not determine coordinates - will try to geocode from address
+                              Could not determine coordinates - will try to geocode from address
                             </div>
                           )}
                         </div>
@@ -1773,13 +1774,13 @@ export default function TripPlanWizard() {
                       >
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 500, fontSize: '14px' }}>
-                            {index + 1}. {wp.source === 'harvest_hosts' && <span style={{ color: '#16a34a' }}>🌾 </span>}
+                            {index + 1}. {wp.source === 'harvest_hosts' && <span style={{ color: '#16a34a' }}><Icon name="tree" size={14} /> </span>}
                             {wp.name}
                           </div>
                           {wp.source === 'harvest_hosts' && (
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                              {wp.max_rig_size && <span>🚐 {wp.max_rig_size}</span>}
-                              {wp.check_in_time && <span style={{ marginLeft: '8px' }}>🕐 {wp.check_in_time}</span>}
+                              {wp.max_rig_size && <span>{wp.max_rig_size}</span>}
+                              {wp.check_in_time && <span style={{ marginLeft: '8px' }}>{wp.check_in_time}</span>}
                             </div>
                           )}
                         </div>
@@ -1826,7 +1827,7 @@ export default function TripPlanWizard() {
                               cursor: 'pointer'
                             }}
                           >
-                            ✕
+                            {<Icon name="cross" size={14} />}
                           </button>
                         </div>
                       </div>
@@ -1870,13 +1871,13 @@ export default function TripPlanWizard() {
                       marginBottom: '4px',
                       textTransform: 'capitalize'
                     }}>
-                      {key === 'fastest' && '🚀 '}
-                      {key === 'shortest' && '📍 '}
-                      {key === 'recommended' && '⭐ '}
-                      {key === 'scenic' && '🏞️ '}
-                      {key === 'fuel_efficient' && '⛽ '}
-                      {key === 'no_tolls' && '🆓 '}
-                      {key === 'no_highways' && '🛤️ '}
+                      {key === 'fastest' && ''}
+                      {key === 'shortest' && ''}
+                      {key === 'recommended' && ''}
+                      {key === 'scenic' && ''}
+                      {key === 'fuel_efficient' && ''}
+                      {key === 'no_tolls' && ''}
+                      {key === 'no_highways' && ''}
                       {key.replace(/_/g, ' ')}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -2185,7 +2186,7 @@ export default function TripPlanWizard() {
                       `}</style>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                         {stop.needs_user_selection && (
-                          <span style={{ fontSize: '18px' }}>🏕️</span>
+                          <span style={{ fontSize: '18px' }}><Icon name="tent" size={18} /></span>
                         )}
                         <div style={{ fontWeight: 600, color: stop.needs_user_selection ? '#f59e0b' : 'inherit' }}>
                           {stop.needs_user_selection ? `Day ${stop.day} - Search Area` : stop.name}
@@ -2228,11 +2229,11 @@ export default function TripPlanWizard() {
                           {stop.suggested_sources && stop.suggested_sources.length > 0 && (
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                               Look for: {stop.suggested_sources.map(s =>
-                                s === 'harvest_hosts' ? '🌾 Harvest Hosts' :
-                                s === 'campground' ? '⛺ Campgrounds' :
-                                s === 'rv_park' ? '🚐 RV Parks' :
-                                s === 'walmart' ? '🏪 Walmart' :
-                                s === 'cracker_barrel' ? '🥘 Cracker Barrel' : s
+                                s === 'harvest_hosts' ? 'Harvest Hosts' :
+                                s === 'campground' ? 'Campgrounds' :
+                                s === 'rv_park' ? 'RV Parks' :
+                                s === 'walmart' ? 'Walmart' :
+                                s === 'cracker_barrel' ? 'Cracker Barrel' : s
                               ).join(' • ')}
                             </div>
                           )}
