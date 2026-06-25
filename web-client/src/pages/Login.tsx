@@ -35,12 +35,12 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="login-container">
       {/* Full-page animated WebGL background (random effect from the library) */}
-      <ShaderBackground intensity={0.65} />
+      <ShaderBackground effect="horizon" intensity={0.65} />
 
       <div className="login-shell">
         {/* Left panel: brand + QR to open on a phone. Its own (different) WebGL effect. */}
         <aside className="login-aside">
-          <ShaderBackground absolute intensity={0.9} />
+          <ShaderBackground effect="horizon" absolute intensity={0.9} />
           <div className="login-aside-inner">
             <img src="/icon-192.png" alt="WanderMage" className="login-logo" />
             <h1 className="login-brand">WanderMage</h1>
