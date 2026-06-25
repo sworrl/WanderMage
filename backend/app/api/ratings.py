@@ -61,8 +61,14 @@ async def get_ratings(poi_serial: str, db: Session = Depends(get_db)):
         .all()
     )
     master = await fetch_master(poi_serial)
+    # The master echoes back ratings this node pushed up; skip them so our own
+    # reviews aren't counted twice (once local, once via the master pool).
+    me = node_id()
+    master = [m for m in master if m.get("origin") != me]
 
     category = local[0].category if local else None
+    if category is None and master:
+        category = master[0].get("category")
     dims = dimensions_for(category)
 
     overalls: List[float] = [r.overall for r in local if r.overall is not None]
