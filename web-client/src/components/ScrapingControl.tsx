@@ -244,7 +244,7 @@ export default function ScrapingControl() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <h3 style={{ margin: 0, color: '#3b82f6' }}>
-              {activeCrawl.status === 'rate_limited' ? '⏸️ Rate Limited' : 'Crawl In Progress'}
+              {activeCrawl.status === 'rate_limited' ? 'Rate Limited' : 'Crawl In Progress'}
             </h3>
             <button
               onClick={stopCrawl}

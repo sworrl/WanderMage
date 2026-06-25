@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Layout from './components/Layout'
+import Loader from './components/fx/Loader'
 import HolidayEffects, { getCurrentHoliday } from './components/HolidayEffects'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
@@ -131,7 +132,7 @@ function App() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <Loader label="Loading WanderMage" />
       </div>
     )
   }

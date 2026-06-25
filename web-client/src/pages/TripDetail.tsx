@@ -935,7 +935,7 @@ export default function TripDetail() {
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                <span>ℹ️</span>
+                <Icon name="info" size={16} />
                 <span>
                   Camera data from <a href="https://deflock.me" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }}>DeFlock.me</a>.
                   Flock/ALPR cameras capture license plates and share data across law enforcement networks.

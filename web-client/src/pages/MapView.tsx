@@ -3659,7 +3659,7 @@ export default function MapView() {
                           gap: '4px'
                         }}
                       >
-                        {isRadarAnimating ? '⏸' : '▶'} {isRadarAnimating ? 'Pause' : 'Play'}
+                        {isRadarAnimating ? <Icon name="pause" size={12} /> : <Icon name="play" size={12} />} {isRadarAnimating ? 'Pause' : 'Play'}
                       </button>
                       <button
                         onClick={() => {
@@ -3678,7 +3678,7 @@ export default function MapView() {
                         }}
                         title="Jump to latest"
                       >
-                        ⏭
+                        <Icon name="skip" size={14} />
                       </button>
                       <button
                         onClick={() => {
@@ -4093,7 +4093,7 @@ export default function MapView() {
                               onChange={(e) => setHeightShowBridges(e.target.checked)}
                               style={{ display: 'none' }}
                             />
-                            <span style={{ fontSize: '12px' }}>▲</span>
+                            <Icon name="clearance" size={12} />
                             <span>Bridges</span>
                           </label>
                           <label style={{
@@ -4113,7 +4113,7 @@ export default function MapView() {
                               onChange={(e) => setHeightShowTunnels(e.target.checked)}
                               style={{ display: 'none' }}
                             />
-                            <span style={{ fontSize: '12px' }}>⌓</span>
+                            <Icon name="tunnel" size={12} />
                             <span>Tunnels</span>
                           </label>
                           <label style={{
@@ -4340,7 +4340,7 @@ export default function MapView() {
                       marginBottom: '8px'
                     }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold' }}>
-                        ⏱️ Drive-Time Zones
+                        Drive-Time Zones
                       </span>
                       <button
                         onClick={() => {
@@ -4364,7 +4364,7 @@ export default function MapView() {
                       <>
                         {isochronesLoading && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textAlign: 'center' }}>
-                            ⏳ Loading drive-time zones...
+                            Loading drive-time zones...
                           </div>
                         )}
                         <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: '1.4' }}>
@@ -4382,7 +4382,7 @@ export default function MapView() {
                             border: isochroneLayer15 ? '1px solid #10B981' : '1px solid var(--border-color)'
                           }}>
                             <span style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ color: '#10B981', fontSize: '14px' }}>●</span>
+                              <span style={{ color: '#10B981' }}><Icon name="dot" size={10} /></span>
                               15 minutes
                             </span>
                             <button
@@ -4413,7 +4413,7 @@ export default function MapView() {
                             border: isochroneLayer30 ? '1px solid #3B82F6' : '1px solid var(--border-color)'
                           }}>
                             <span style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ color: '#3B82F6', fontSize: '14px' }}>●</span>
+                              <span style={{ color: '#3B82F6' }}><Icon name="dot" size={10} /></span>
                               30 minutes
                             </span>
                             <button
@@ -4444,7 +4444,7 @@ export default function MapView() {
                             border: isochroneLayer45 ? '1px solid #F59E0B' : '1px solid var(--border-color)'
                           }}>
                             <span style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ color: '#F59E0B', fontSize: '14px' }}>●</span>
+                              <span style={{ color: '#F59E0B' }}><Icon name="dot" size={10} /></span>
                               45 minutes
                             </span>
                             <button
@@ -4997,7 +4997,7 @@ export default function MapView() {
                         }}
                       >
                         {stopRangeLoading && stopRangeCenter?.lat === stop.latitude
-                          ? '⏳ Loading...'
+                          ? 'Loading...'
                           : stopRangeCenter?.lat === stop.latitude && stopRangeCenter?.lon === stop.longitude
                             ? 'Range Shown'
                             : 'Show 30-min Drive Range'}
@@ -5793,7 +5793,7 @@ export default function MapView() {
                           <div style={{ padding: '4px' }}>
                             <strong>{stop.name}</strong>
                             <br />
-                            <span style={{ color: '#F59E0B' }}>⏱️ 45-minute drive time</span>
+                            <span style={{ color: '#F59E0B' }}><Icon name="clock" size={12} /> 45-minute drive time</span>
                           </div>
                         </Popup>
                       </Polygon>
@@ -5815,7 +5815,7 @@ export default function MapView() {
                           <div style={{ padding: '4px' }}>
                             <strong>{stop.name}</strong>
                             <br />
-                            <span style={{ color: '#3B82F6' }}>⏱️ 30-minute drive time</span>
+                            <span style={{ color: '#3B82F6' }}><Icon name="clock" size={12} /> 30-minute drive time</span>
                           </div>
                         </Popup>
                       </Polygon>
@@ -5837,7 +5837,7 @@ export default function MapView() {
                           <div style={{ padding: '4px' }}>
                             <strong>{stop.name}</strong>
                             <br />
-                            <span style={{ color: '#10B981' }}>⏱️ 15-minute drive time</span>
+                            <span style={{ color: '#10B981' }}><Icon name="clock" size={12} /> 15-minute drive time</span>
                           </div>
                         </Popup>
                       </Polygon>

@@ -264,7 +264,7 @@ export default function EngageTheMage() {
         >
           <span className="spell-icon"><Icon name="spark" size={16} /></span>
           {showCapabilities ? 'Hide' : 'Reveal'} the Mage's Powers
-          <span className={`toggle-arrow ${showCapabilities ? 'open' : ''}`}>▼</span>
+          <span className={`toggle-arrow ${showCapabilities ? 'open' : ''}`}><Icon name="triDown" size={12} /></span>
         </button>
 
         {showCapabilities && (

@@ -1881,7 +1881,7 @@ export default function Dashboard() {
                   color: fuelPrices.us_regular_change > 0 ? '#ef4444' : fuelPrices.us_regular_change < 0 ? '#10b981' : 'var(--text-muted)',
                   marginTop: '4px'
                 }}>
-                  {fuelPrices.us_regular_change > 0 ? '▲' : fuelPrices.us_regular_change < 0 ? '▼' : '—'}
+                  {fuelPrices.us_regular_change > 0 ? <Icon name="triUp" size={11} /> : fuelPrices.us_regular_change < 0 ? <Icon name="triDown" size={11} /> : '—'}
                   {' '}${Math.abs(fuelPrices.us_regular_change ?? 0).toFixed(3)}
                 </div>
               )}
@@ -1904,7 +1904,7 @@ export default function Dashboard() {
                       color: fuelPrices.us_diesel_change > 0 ? '#ef4444' : fuelPrices.us_diesel_change < 0 ? '#10b981' : 'var(--text-muted)',
                       marginTop: '4px'
                     }}>
-                      {fuelPrices.us_diesel_change > 0 ? '▲' : fuelPrices.us_diesel_change < 0 ? '▼' : '—'}
+                      {fuelPrices.us_diesel_change > 0 ? <Icon name="triUp" size={11} /> : fuelPrices.us_diesel_change < 0 ? <Icon name="triDown" size={11} /> : '—'}
                       {' '}${Math.abs(fuelPrices.us_diesel_change ?? 0).toFixed(3)}
                     </div>
                   )}
@@ -1933,7 +1933,7 @@ export default function Dashboard() {
                       color: fuelPrices.us_propane_change > 0 ? '#ef4444' : fuelPrices.us_propane_change < 0 ? '#10b981' : 'var(--text-muted)',
                       marginTop: '4px'
                     }}>
-                      {fuelPrices.us_propane_change > 0 ? '▲' : fuelPrices.us_propane_change < 0 ? '▼' : '—'}
+                      {fuelPrices.us_propane_change > 0 ? <Icon name="triUp" size={11} /> : fuelPrices.us_propane_change < 0 ? <Icon name="triDown" size={11} /> : '—'}
                       {' '}${Math.abs(fuelPrices.us_propane_change ?? 0).toFixed(3)}
                     </div>
                   )}
@@ -1968,7 +1968,7 @@ export default function Dashboard() {
                             fontWeight: 600,
                             color: change > 0 ? '#ef4444' : change < 0 ? '#10b981' : 'var(--text-muted)'
                           }}>
-                            {change > 0 ? '▲' : change < 0 ? '▼' : ''}
+                            {change > 0 ? <Icon name="triUp" size={11} /> : change < 0 ? <Icon name="triDown" size={11} /> : ''}
                           </span>
                         )}
                       </div>
@@ -1995,7 +1995,7 @@ export default function Dashboard() {
                               fontWeight: 600,
                               color: change > 0 ? '#ef4444' : change < 0 ? '#10b981' : 'var(--text-muted)'
                             }}>
-                              {change > 0 ? '▲' : change < 0 ? '▼' : ''}
+                              {change > 0 ? <Icon name="triUp" size={11} /> : change < 0 ? <Icon name="triDown" size={11} /> : ''}
                             </span>
                           )}
                         </div>
@@ -2035,7 +2035,7 @@ export default function Dashboard() {
                               fontWeight: 600,
                               color: change > 0 ? '#ef4444' : change < 0 ? '#10b981' : 'var(--text-muted)'
                             }}>
-                              {change > 0 ? '▲' : change < 0 ? '▼' : ''}
+                              {change > 0 ? <Icon name="triUp" size={11} /> : change < 0 ? <Icon name="triDown" size={11} /> : ''}
                             </span>
                           )}
                         </div>

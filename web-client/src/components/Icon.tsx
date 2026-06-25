@@ -76,6 +76,12 @@ const GLYPHS: Record<string, string> = {
   heart: '<path d="M12 20 C5 14 3 10 3 7.5 A4.5 4.5 0 0 1 12 6 A4.5 4.5 0 0 1 21 7.5 C21 10 19 14 12 20 z"/>',
   leaf: '<path d="M5 19 C5 9 12 4 20 4 C20 14 13 19 5 19 z"/><line x1="5" y1="19" x2="13" y2="11"/>',
   spark: '<path d="M12 3 l1.6 6.4 L20 11 l-6.4 1.6 L12 19 l-1.6-6.4 L4 11 l6.4-1.6 z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 16,14"/>',
+  play: '<polygon points="8,5 19,12 8,19" fill="currentColor" stroke="none"/>',
+  skip: '<polygon points="6,5 15,12 6,19" fill="currentColor" stroke="none"/><rect x="16" y="5" width="2.4" height="14" fill="currentColor" stroke="none"/>',
+  triUp: '<polygon points="12,7 19,17 5,17" fill="currentColor" stroke="none"/>',
+  triDown: '<polygon points="5,7 19,7 12,17" fill="currentColor" stroke="none"/>',
+  tunnel: '<path d="M4 20 V13 a8 7 0 0 1 16 0 v7"/><path d="M9.5 20 v-5 a2.5 3 0 0 1 5 0 v5"/>',
   wash: '<path d="M6 11 a6 6 0 0 1 12 0"/><line x1="12" y1="3" x2="12" y2="5"/><line x1="8" y1="15" x2="7" y2="18"/><line x1="12" y1="15.5" x2="11" y2="19"/><line x1="16" y1="15" x2="15" y2="18"/>',
 }
 

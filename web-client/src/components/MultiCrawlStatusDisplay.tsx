@@ -137,7 +137,7 @@ export default function MultiCrawlStatusDisplay() {
       case 'paused':
         return 'pause';
       case 'rate_limited':
-        return '⏳';
+        return 'clock';
       default:
         return 'dot';
     }

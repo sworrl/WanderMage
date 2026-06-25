@@ -1151,7 +1151,7 @@ export default function TripForm() {
           </div>
 
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>
-            ↕️ Drag stops to reorder them. Add dates to stops you've already booked.
+            Drag stops to reorder them. Add dates to stops you've already booked.
           </p>
 
           {stops.length === 0 && (
