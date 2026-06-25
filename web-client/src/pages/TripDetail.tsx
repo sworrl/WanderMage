@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import Icon from '../components/Icon'
 import { useParams } from 'react-router-dom'
 import { trips as tripsApi } from '../services/api'
@@ -1473,7 +1474,7 @@ export default function TripDetail() {
             ))}
           </div>
         ) : (
-          <p style={{ color: 'var(--text-muted)' }}>No stops added yet. Click "Add Stop" or "Import HH" to get started.</p>
+          <EmptyState title="No stops yet" hint='Click "Add Stop" or "Import HH" to get started.' minHeight={180} />
         )}
       </div>
 

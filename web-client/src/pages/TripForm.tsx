@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import Icon from '../components/Icon'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
@@ -1155,11 +1156,7 @@ export default function TripForm() {
           </p>
 
           {stops.length === 0 && (
-            <div className="card" style={{ textAlign: 'center', padding: '40px', background: 'var(--bg-tertiary)' }}>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-                No stops yet. Click "Add Stop" to start planning your route!
-              </p>
-            </div>
+            <EmptyState title="No stops yet" hint='Click "Add Stop" to start planning your route.' minHeight={180} />
           )}
 
           {stops.map((stop, index) => (

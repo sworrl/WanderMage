@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import EmptyState from '../components/fx/EmptyState'
 import Icon from '../components/Icon'
 import { settings, auth, users as usersApi, credentials as credentialsApi } from '../services/api'
 import ScraperDashboard from '../components/ScraperDashboard'
@@ -706,9 +707,7 @@ export default function AdminPanel() {
               </table>
 
               {usersList.length === 0 && (
-                <div className="empty-state">
-                  <p>No users found</p>
-                </div>
+                <EmptyState title="No users found" minHeight={160} />
               )}
             </div>
           </div>

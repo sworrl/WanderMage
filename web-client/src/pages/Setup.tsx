@@ -63,7 +63,7 @@ export default function Setup() {
 
   return (
     <div className="setup-container">
-      <ShaderBackground intensity={0.75} />
+      <ShaderBackground effect="horizon" intensity={0.75} />
       <div className="setup-card">
         <div className="setup-header">
           <h1 className="setup-title">Welcome to WanderMage</h1>
